@@ -1,0 +1,8 @@
+.claude/worktrees/
+
+.DS_Store
+._*
+Thumbs.db
+desktop.ini
+*~
+.directory
