@@ -28,6 +28,8 @@ or a file inside them.
 - `Federation`: creates or opens a federation repository, reads the organization's knowledge and
   reads and writes the catalog.
 - `CatalogEntry`, `Location` and `Stage`: an asset as the catalog records it.
+- `Location::find`: where the code in a folder lives, as the root of the git repository that holds
+  it and the folder relative to that root.
 - `read_asset` and `AssetFolder`: what an asset's `.federa/` says.
 - `AssetName`: a valid asset name.
 - `Error`: why an operation failed.

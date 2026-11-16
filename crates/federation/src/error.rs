@@ -13,14 +13,16 @@ pub enum Error {
     NotFederation(PathBuf),
     #[error("{0} has no .federa/ folder")]
     NoAssetFolder(PathBuf),
+    #[error("{folder} is not inside a git repository: {reason}")]
+    NotInRepository { folder: PathBuf, reason: String },
     #[error("asset {0} is already registered")]
     AlreadyRegistered(AssetName),
     #[error("asset {0} is not registered")]
     NotRegistered(AssetName),
     #[error("{0:?} is not a valid asset name: lowercase letters, digits and single hyphens")]
     InvalidName(String),
-    /// A file whose name or content this version cannot read or write, such as one in another
-    /// schema.
+    /// A file that is missing, or whose name or content this version cannot read or write, such
+    /// as one in another schema.
     #[error("{file}: {reason}")]
     Invalid { file: PathBuf, reason: String },
     #[error("git failed: {0}")]

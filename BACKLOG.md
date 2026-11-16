@@ -32,11 +32,6 @@ decisiones de dirección están en `AGENTS.md`.
   `{"type":"user","message":{"role":"user","content":"<texto>"}}`; la sesión no iniciada se simula
   sin tocar el llavero real con un `CLAUDE_CONFIG_DIR` vacío, porque el nombre de la entrada del
   llavero depende de esa carpeta. La grabación nunca lee, copia ni imprime credenciales.
-- **kernel-asset**: full. Outcome: el kernel crea y abre organizaciones y registra activos. In
-  scope: el crate `kernel` con los módulos `organization` y `asset`, que atienden los comandos de
-  `protocol` usando `federation`. Out of scope: conversaciones y herramientas MCP. Done when: un test
-  crea una organización y registra un activo usando solo comandos del protocolo. Extends: kernel.
-  After: protocol-contract, federation-store.
 - **claude-sign-in**: full. Outcome: la persona conecta Federa con su cuenta de Claude desde la
   app, sin escribir comandos. In scope: el contrato de `engine` suma consultar si el motor tiene la
   sesión iniciada y empezar su inicio de sesión oficial; `claude` lo hace con `claude auth status` y

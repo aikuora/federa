@@ -1,4 +1,4 @@
-use std::{fs, path::Path};
+use std::{fs, io::ErrorKind, path::Path};
 
 use serde::Deserialize;
 
@@ -27,12 +27,24 @@ pub fn read_asset(folder: &Path) -> Result<AssetFolder, Error> {
         return Err(Error::NoAssetFolder(folder.to_owned()));
     }
     let path = federa.join("asset.toml");
-    let asset: AssetFile = toml_file::read(&path)?;
+    let asset: AssetFile = toml_file::read(&path).map_err(missing)?;
     let knowledge = federa.join("knowledge.md");
     Ok(AssetFolder {
         name: AssetName::parse(&asset.name).map_err(|e| Error::invalid(&path, e))?,
-        knowledge: fs::read_to_string(&knowledge).map_err(Error::io(&knowledge))?,
+        knowledge: fs::read_to_string(&knowledge)
+            .map_err(Error::io(&knowledge))
+            .map_err(missing)?,
     })
+}
+
+// A file missing from `.federa/` is the asset's to fix, like one this version cannot read.
+fn missing(error: Error) -> Error {
+    match error {
+        Error::Io { path, source } if source.kind() == ErrorKind::NotFound => {
+            Error::invalid(&path, "it is missing")
+        }
+        error => error,
+    }
 }
 
 #[cfg(test)]
@@ -63,17 +75,24 @@ mod tests {
     }
 
     #[test]
-    fn names_the_file_it_could_not_read() {
+    fn names_the_file_that_is_missing() {
         let dir = tempfile::tempdir().unwrap();
         let federa = dir.path().join(".federa");
         fs::create_dir(&federa).unwrap();
+        let error = read_asset(dir.path()).unwrap_err();
+        assert!(
+            matches!(&error, Error::Invalid { file, .. } if *file == federa.join("asset.toml"))
+        );
+
         fs::write(
             federa.join("asset.toml"),
             "schema = 1\nname = \"billing\"\n",
         )
         .unwrap();
         let error = read_asset(dir.path()).unwrap_err();
-        assert!(matches!(&error, Error::Io { path, .. } if *path == federa.join("knowledge.md")));
+        assert!(
+            matches!(&error, Error::Invalid { file, .. } if *file == federa.join("knowledge.md"))
+        );
         assert!(error.to_string().contains("knowledge.md"), "{error}");
     }
 }

@@ -2,12 +2,11 @@ use std::{
     fs,
     io::ErrorKind,
     path::{Path, PathBuf},
-    process::Command,
 };
 
 use serde::{Deserialize, Serialize};
 
-use crate::{AssetName, CatalogEntry, Error, catalog, toml_file};
+use crate::{AssetName, CatalogEntry, Error, catalog, git, toml_file};
 
 // The repository's layout: `organization/organization.toml` holds the organization's name and
 // marks the folder as a federation repository; `organization/knowledge.md` holds what every agent
@@ -98,7 +97,7 @@ impl Federation {
 fn init(folder: &Path, name: &str) -> Result<Federation, Error> {
     let dir = folder.join(ORGANIZATION);
     fs::create_dir_all(&dir).map_err(Error::io(&dir))?;
-    git_init(folder)?;
+    git::run(folder, &["init"])?;
     let organization = OrganizationFile {
         name: name.to_owned(),
     };
@@ -120,25 +119,6 @@ fn undo_init(folder: &Path, existed: bool) {
     } else {
         let _ = fs::remove_dir_all(folder);
     }
-}
-
-fn git_init(folder: &Path) -> Result<(), Error> {
-    // git reads these from the environment before any argument, and a git hook sets them for the
-    // repository it runs in; inherited, `git init` would act on that repository instead.
-    let output = Command::new("git")
-        .arg("init")
-        .arg(folder)
-        .env_remove("GIT_DIR")
-        .env_remove("GIT_WORK_TREE")
-        .env_remove("GIT_INDEX_FILE")
-        .output()
-        .map_err(|e| Error::Git(format!("could not run git: {e}")))?;
-    if !output.status.success() {
-        return Err(Error::Git(
-            String::from_utf8_lossy(&output.stderr).trim().to_owned(),
-        ));
-    }
-    Ok(())
 }
 
 #[cfg(test)]

@@ -5,6 +5,7 @@
 mod asset;
 mod catalog;
 mod error;
+mod git;
 mod name;
 mod organization;
 mod toml_file;
