@@ -37,12 +37,28 @@ decisiones de dirección están en `AGENTS.md`.
   `protocol` usando `federation`. Out of scope: conversaciones y herramientas MCP. Done when: un test
   crea una organización y registra un activo usando solo comandos del protocolo. Extends: kernel.
   After: protocol-contract, federation-store.
+- **claude-sign-in**: full. Outcome: la persona conecta Federa con su cuenta de Claude desde la
+  app, sin escribir comandos. In scope: el contrato de `engine` suma consultar si el motor tiene la
+  sesión iniciada y empezar su inicio de sesión oficial; `claude` lo hace con `claude auth status` y
+  `claude auth login --claudeai` contra la carpeta de configuración propia de Federa, que abre la
+  página de Anthropic en el navegador; `protocol` suma un comando para consultar el estado de la
+  conexión con Claude, otro para empezar el inicio de sesión y un evento cuando el estado cambia; el
+  kernel los atiende. Out of scope: el botón en la app, que trae `desktop-asset-view`; otros
+  motores. Done when: un test sin red, con un binario de prueba, ve el estado sin conectar, pide el
+  inicio de sesión y ve el estado conectado; y un test en vivo, que corre la persona, conecta una
+  carpeta de configuración nueva. Scope: claude/sign-in. Extends: engine, kernel. After:
+  claude-engine, kernel-asset. Decidido: Federa nunca lee el token; si `auth login` puede terminar
+  pidiendo un código pegado, la app abre una terminal con el inicio de sesión corriendo en vez de
+  pedir el código ella misma. Surgió en el change `claude-engine`, cuando la persona decidió que los
+  agentes corren con una carpeta de configuración propia de Federa.
 - **runtime-server**: full. Outcome: el runtime corre como proceso propio y atiende clientes. In
   scope: `apps/runtime`, que conecta `kernel`, `federation` y `claude`, sirve el protocolo por
-  WebSocket solo en `127.0.0.1`, con un token en un archivo que solo el usuario puede leer, y
-  responde el saludo de versión. Out of scope: apagado por inactividad, ícono en la barra del
-  sistema y reemplazo de otra versión. Done when: un cliente de prueba se conecta con el token, se
-  rechaza sin él, y crea una organización. Extends: runtime. After: kernel-asset.
+  WebSocket solo en `127.0.0.1`, guarda sus datos en una carpeta propia que contiene la carpeta de
+  configuración de Claude de Federa, toma la identidad de la persona de `git config user.email`, con
+  un token en un archivo que solo el usuario puede leer, y responde el saludo de versión. Out of
+  scope: apagado por inactividad, ícono en la barra del sistema y reemplazo de otra versión. Done
+  when: un cliente de prueba se conecta con el token, se rechaza sin él, y crea una organización.
+  Extends: runtime. After: kernel-asset.
 - **kernel-tools**: full. Outcome: los agentes usan herramientas de Federa por MCP. In scope: el
   runtime atiende MCP por HTTP; cada agente recibe un token propio con su rol, su sesión, su activo
   y su goal, y el kernel sabe quién llama en cada pedido; el runtime agrega al sandbox del agente el
@@ -57,13 +73,14 @@ decisiones de dirección están en `AGENTS.md`.
   al activo. Out of scope: decisiones que pasan al repo de federación; otros roles de agente. Done
   when: un test en vivo, que corre la persona, pregunta qué hace un activo de prueba y la respuesta
   usa su `.federa/knowledge.md`; reiniciar el runtime y traer la conversación la devuelve completa.
-  Extends: kernel. After: claude-engine, kernel-tools.
+  Extends: kernel. After: claude-engine, kernel-tools, claude-sign-in.
 - **desktop-asset-view**: full. Outcome: la persona hace el recorrido del goal desde la app. In
   scope: `apps/desktop` con Tauri 2, React, TypeScript y shadcn, módulos por funcionalidad y los
   tipos del protocolo generados; arranca el runtime si no hay uno corriendo y se conecta con su
   token; crear la organización, registrar el activo, verlo en el mapa y conversar con el peer dentro
-  del activo. Out of scope: empaquetar el runtime en el instalador; las demás superficies. Done when:
-  el Done when del goal, hecho a mano por la persona. Extends: desktop. After: protocol-contract.
+  del activo; el botón "Conectar con Claude" cuando el runtime no tiene la sesión iniciada. Out of
+  scope: empaquetar el runtime en el instalador; las demás superficies. Done when: el Done when del
+  goal, hecho a mano por la persona. Extends: desktop. After: runtime-server, claude-sign-in.
 
 ### coordinated-goal
 
