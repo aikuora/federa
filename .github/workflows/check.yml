@@ -19,4 +19,9 @@ jobs:
       - uses: moonrepo/setup-toolchain@v0
         with:
           auto-install: true
+      # The system libraries the desktop app's native side builds against, as Tauri's Linux
+      # prerequisites list them.
+      - run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev librsvg2-dev
       - run: moon run :check

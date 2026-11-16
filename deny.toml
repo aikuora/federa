@@ -17,6 +17,12 @@ allow = [
 # The list is the policy, not an inventory of what the graph holds today.
 unused-allowed-license = "allow"
 
+# Unmaintained crates are checked only among our crates' direct dependencies: the desktop app's
+# native side pulls on Linux the GTK3 bindings, which are unmaintained but not vulnerable.
+# Vulnerabilities are still checked across the whole graph.
+[advisories]
+unmaintained = "workspace"
+
 # The direction of dependencies between the crates: each crate below may be used only by the ones
 # listed, so the kernel never reaches a concrete engine and a client reaches only `protocol`.
 [[bans.deny]]

@@ -2,26 +2,6 @@
 
 ## Goals
 
-### asset-conversation
-
-La persona registra un activo en su organización y conversa con su peer sobre él. Done when: abres
-Federa y creas una organización en una carpeta nueva, que pasa a ser su repo de federación;
-registras como activo un repo local que tiene un `.federa/` con su alcance; le preguntas a tu peer
-qué hace ese activo y su respuesta usa lo que dice ese `.federa/`; cierras la app, la vuelves a
-abrir y la conversación sigue en el activo. Primero, porque cruza todas las capas (cliente,
-protocolo, runtime, kernel, repo de federación, `.federa/`, motor de Claude con la suscripción de la
-persona y herramientas MCP) y saca el riesgo técnico más grande: manejar el binario oficial
-`claude` desde Rust. Trae además la base del proyecto. Surgió en el capture `foundation`; sus
-decisiones de dirección están en `AGENTS.md`.
-
-- **desktop-asset-view**: full. Outcome: la persona hace el recorrido del goal desde la app. In
-  scope: `apps/desktop` con Tauri 2, React, TypeScript y shadcn, módulos por funcionalidad y los
-  tipos del protocolo generados; arranca el runtime si no hay uno corriendo y se conecta con su
-  token; crear la organización, registrar el activo, verlo en el mapa y conversar con el peer dentro
-  del activo; el botón "Conectar con Claude" cuando el runtime no tiene la sesión iniciada. Out of
-  scope: empaquetar el runtime en el instalador; las demás superficies. Done when: el Done when del
-  goal, hecho a mano por la persona. Extends: desktop. After: runtime-server, claude-sign-in.
-
 ### coordinated-goal
 
 La persona define un goal con su peer, y un coordinator lo construye con implementers y reviewers en

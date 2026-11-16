@@ -1,0 +1,6 @@
+// The interface runs in a web view, so only the tests and the build's configuration, which run in
+// Node, see Node's types.
+{
+  "files": [],
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
+}

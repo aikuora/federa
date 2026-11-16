@@ -11,6 +11,25 @@ export default defineConfig({
       typeAware: true,
       typeCheck: true,
     },
+    overrides: [
+      {
+        files: ['apps/desktop/src/**'],
+        rules: {
+          'no-restricted-imports': [
+            'error',
+            {
+              paths: [
+                {
+                  name: '@tauri-apps/api/core',
+                  message: 'The interface reaches the runtime only through `src/runtime`.',
+                },
+              ],
+            },
+          ],
+        },
+      },
+      { files: ['apps/desktop/src/runtime/**'], rules: { 'no-restricted-imports': 'off' } },
+    ],
   },
   // Oxfmt and Oxlint skip what git ignores; Vitest does not, so it would run the tests of every
   // change worktree too.
