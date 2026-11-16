@@ -200,6 +200,9 @@ flowchart LR
 - Cada persona usa su propia suscripción o su API key. La app nunca ofrece un login propio de un
   proveedor ni lee, guarda o intermedia credenciales: la sesión se inicia en el flujo oficial de
   cada proveedor, porque sus términos lo exigen para usar las suscripciones.
+- Los agentes de Claude corren con una carpeta de configuración propia de la app, así nada de la
+  configuración de la persona ni de los archivos de Claude del repo del activo les llega, y la
+  persona inicia sesión ahí una vez, por el flujo oficial, desde la app.
 - La jerarquía, la comunicación entre agentes, el conocimiento y el registro del trabajo viven en el
   núcleo, y los agentes los usan como herramientas por MCP. Así un peer y un implementer pueden
   correr en motores distintos con las mismas reglas.

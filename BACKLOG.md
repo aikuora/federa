@@ -14,24 +14,6 @@ persona y herramientas MCP) y saca el riesgo técnico más grande: manejar el bi
 `claude` desde Rust. Trae además la base del proyecto. Surgió en el capture `foundation`; sus
 decisiones de dirección están en `AGENTS.md`.
 
-- **claude-engine**: full. Outcome: el kernel puede abrir un agente en Claude y conversar con él a
-  través del contrato de motores. In scope: el crate `engine` con el contrato común (abrir un agente
-  con su rol e instrucciones, mandarle un mensaje, recibir sus eventos, cerrarlo); el crate `claude`,
-  que lanza el binario oficial con `-p --input-format stream-json --output-format stream-json
-  --verbose`, con el sandbox siempre activo; versión mínima `2.1.311`, aceptando las más nuevas sin
-  aviso y avisando por debajo; lee solo los campos que usa e ignora el resto, y falla con un error
-  claro cuando falta uno que necesita; detecta la sesión no iniciada por `error:
-  "authentication_failed"` y devuelve el aviso de iniciarla con `/login` en el flujo oficial; tests
-  sin red con grabaciones reales de `2.1.311` de abrir sesión, dos turnos, una herramienta MCP y la
-  sesión no iniciada. Out of scope: Codex; que la app instale su propia copia de `claude`. Done
-  when: los tests sin red pasan, y un test en vivo, que corre la persona, conversa dos turnos con su
-  suscripción. Extends: engine, claude. After: project-base. Background verificado al comparar
-  `2.1.311` con `2.1.325`: entre ellas solo aparecieron tres campos opcionales; `system/init` se
-  repite en cada turno; el modelo a veces llama a `ToolSearch` antes de una herramienta MCP y a veces
-  no, y el adaptador acepta ambos caminos; la entrada es
-  `{"type":"user","message":{"role":"user","content":"<texto>"}}`; la sesión no iniciada se simula
-  sin tocar el llavero real con un `CLAUDE_CONFIG_DIR` vacío, porque el nombre de la entrada del
-  llavero depende de esa carpeta. La grabación nunca lee, copia ni imprime credenciales.
 - **claude-sign-in**: full. Outcome: la persona conecta Federa con su cuenta de Claude desde la
   app, sin escribir comandos. In scope: el contrato de `engine` suma consultar si el motor tiene la
   sesión iniciada y empezar su inicio de sesión oficial; `claude` lo hace con `claude auth status` y
