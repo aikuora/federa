@@ -1,9 +1,11 @@
-//! The runtime: the process that holds one person's core, apart from any window, and serves it to
-//! clients. It listens only on 127.0.0.1, admits only a client that presents the token it wrote
-//! where only that person can read it, and hands every command to the kernel.
+//! The runtime: the process that holds one person's core, apart from any window. It listens only
+//! on 127.0.0.1 and serves the protocol to clients and the kernel's tools to agents, each behind a
+//! token of its own: a client presents the one the runtime wrote where only that person can read
+//! it, and an agent the one the kernel admitted it with.
 
 mod connection;
 mod data;
+mod mcp;
 mod person;
 mod server;
 mod token;

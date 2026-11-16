@@ -392,8 +392,11 @@ name = "kernel"
 version = "0.0.0"
 dependencies = [
  "federation",
+ "getrandom 0.4.3",
  "protocol",
+ "serde_json",
  "tempfile",
+ "thiserror",
  "tokio",
 ]
 
@@ -570,6 +573,7 @@ version = "0.0.0"
 dependencies = [
  "axum",
  "dirs",
+ "federation",
  "futures-util",
  "getrandom 0.4.3",
  "kernel",
@@ -581,6 +585,7 @@ dependencies = [
  "tokio",
  "tokio-tungstenite",
  "toml",
+ "tower",
 ]
 
 [[package]]

@@ -28,21 +28,16 @@ decisiones de dirección están en `AGENTS.md`.
   pidiendo un código pegado, la app abre una terminal con el inicio de sesión corriendo en vez de
   pedir el código ella misma. Surgió en el change `claude-engine`, cuando la persona decidió que los
   agentes corren con una carpeta de configuración propia de Federa.
-- **kernel-tools**: full. Outcome: los agentes usan herramientas de Federa por MCP. In scope: el
-  runtime atiende MCP por HTTP; cada agente recibe un token propio con su rol, su sesión, su activo
-  y su goal, y el kernel sabe quién llama en cada pedido; el runtime agrega al sandbox del agente el
-  permiso para llegar a él y nada más; la primera herramienta, leer el conocimiento del activo del
-  agente. Out of scope: herramientas de comunicación entre agentes. Done when: un test llama a la
-  herramienta con el token de un agente y recibe el conocimiento de su activo, y sin token se
-  rechaza. Extends: kernel, runtime. After: runtime-server.
 - **peer-on-asset**: full. Outcome: la persona conversa con su peer sobre un activo y la
   conversación queda guardada. In scope: el kernel abre el peer en el motor de Claude, con su rol y
-  conectado a las herramientas MCP, y responde a los comandos de conversación del protocolo; las
-  conversaciones son privadas y se guardan en la carpeta de datos del runtime de la persona, pegadas
-  al activo. Out of scope: decisiones que pasan al repo de federación; otros roles de agente. Done
-  when: un test en vivo, que corre la persona, pregunta qué hace un activo de prueba y la respuesta
-  usa su `.federa/knowledge.md`; reiniciar el runtime y traer la conversación la devuelve completa.
-  Extends: kernel. After: claude-engine, kernel-tools, claude-sign-in.
+  conectado a las herramientas MCP con el servidor y el token propio que le da al abrirlo, y
+  responde a los comandos de conversación del protocolo; si el sandbox de `claude` necesita una
+  regla para llegar al runtime, agrega solo esa; las conversaciones son privadas y se guardan en la
+  carpeta de datos del runtime de la persona, pegadas al activo. Out of scope: decisiones que pasan
+  al repo de federación; otros roles de agente. Done when: un test en vivo, que corre la persona,
+  pregunta qué hace un activo de prueba y la respuesta usa su `.federa/knowledge.md`; reiniciar el
+  runtime y traer la conversación la devuelve completa. Extends: kernel. After: claude-engine,
+  kernel-tools, claude-sign-in.
 - **desktop-asset-view**: full. Outcome: la persona hace el recorrido del goal desde la app. In
   scope: `apps/desktop` con Tauri 2, React, TypeScript y shadcn, módulos por funcionalidad y los
   tipos del protocolo generados; arranca el runtime si no hay uno corriendo y se conecta con su

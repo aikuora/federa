@@ -14,6 +14,8 @@ machine or on a server.
   a client that presents a token only the person can read.
 - **data-folder**: The runtime's own folder on the machine: where clients find a running runtime,
   and the configuration of Claude the app's agents run with.
+- **agent-endpoint**: Serving the kernel's tools to agents over MCP on HTTP, only to an agent that
+  presents its own token.
 
 ### Out of scope
 
@@ -31,6 +33,9 @@ machine or on a server.
   owner. A client reads it to find the runtime.
 - The WebSocket at `ws://127.0.0.1:<port>/`, which takes the token as `Authorization: Bearer
   <token>` and then speaks the `protocol` crate's frames as JSON text messages.
+- The MCP endpoint at `http://127.0.0.1:<port>/mcp`, which takes an agent's token as
+  `Authorization: Bearer <token>` and answers `initialize`, `tools/list` and `tools/call` over
+  MCP's Streamable HTTP transport, each with one JSON body and no session.
 - The data folder: `FEDERA_DATA_DIR` when set, otherwise `federa` inside the platform's data folder
   as the `dirs` crate's `data_dir` gives it (`~/Library/Application Support/federa` on macOS,
   `$XDG_DATA_HOME/federa` or `~/.local/share/federa` on Linux, `%APPDATA%\federa` on Windows). A
@@ -51,3 +56,5 @@ machine or on a server.
 - The tests in `tests/` run the real binary with a temporary `FEDERA_DATA_DIR` and a git
   configuration of their own (`GIT_CONFIG_GLOBAL`), read its `runtime.toml` and connect as a
   client. They need the `git` binary.
+- The tests in `src/server.rs` drive the served routes in-process, admitting agents in the kernel
+  directly, which a test outside the process cannot do. They need the `git` binary too.
