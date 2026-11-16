@@ -14,13 +14,6 @@ persona y herramientas MCP) y saca el riesgo técnico más grande: manejar el bi
 `claude` desde Rust. Trae además la base del proyecto. Surgió en el capture `foundation`; sus
 decisiones de dirección están en `AGENTS.md`.
 
-- **protocol-contract**: full. Outcome: existe el contrato entre clientes y runtime. In scope: el
-  crate `protocol` con los comandos y eventos de crear y abrir una organización, registrar un activo,
-  listar activos, y conversar con el peer de un activo (enviar mensaje, recibir la respuesta en
-  partes, traer la conversación guardada); el saludo inicial donde cliente y runtime declaran la
-  versión del protocolo; la generación de los tipos TypeScript desde Rust. Out of scope: el
-  transporte, que trae `runtime-server`. Done when: los tipos TypeScript generados compilan y un
-  check falla si quedan desalineados con Rust. Extends: protocol. After: project-base.
 - **federation-store**: full. Outcome: Federa crea y abre un repo de federación y registra un activo
   en su catálogo. In scope: el crate `federation`, detrás de su interfaz; `organization/knowledge.md`;
   `assets/<activo>.toml` con dueño, ubicación (repo y carpeta), etapa y si está gestionado; leer el
