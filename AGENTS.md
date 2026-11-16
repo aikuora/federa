@@ -305,7 +305,7 @@ flowchart LR
   `vMAJOR.MINOR.PATCH` sobre `main`, y una rama desde un tag existe solo para un hotfix.
 - Lo que entra a `main` sin estar listo para usuarios queda detrás de un feature flag.
 - El peer hace push de `main` a GitHub cuando termina cada goal.
-- Los commits siguen Conventional Commits, verificado por commitlint en commit-msg.
+- Los commits siguen Conventional Commits sin scope, verificado por commitlint en commit-msg.
 - Los worktrees de `.claude/worktrees/` quedan fuera de git y de toda herramienta que recorra el
   repo para testear, analizar, construir, formatear o empaquetar.
 - `AGENTS.md` no pasa de 500 líneas, y la tarea `agents-cap` lo verifica.

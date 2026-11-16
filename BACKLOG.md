@@ -2,18 +2,6 @@
 
 ## Goals
 
-### scopeless-commits
-
-Los commits del proyecto van sin scope y un check lo hace cumplir. Done when: un commit como
-`feat(kernel): x` se rechaza en commit-msg y `feat: x` pasa. Primero, porque debe estar en `main`
-antes de que el peer reescriba su historia sin scopes y haga el primer push. Surgió durante el goal
-`asset-conversation`, por decisión de la persona.
-
-- **no-commit-scopes**: short. Outcome: commitlint rechaza todo commit con scope. In scope: la regla
-  `scope-empty` en siempre; la línea de Repositorio de `AGENTS.md` pasa a decir Conventional Commits
-  sin scope, verificado por commitlint. Out of scope: reescribir la historia existente, que hace el
-  peer después del merge. Done when: el del goal. Scope: project.
-
 ### coordinated-goal
 
 La persona define un goal con su peer, y un coordinator lo construye con implementers y reviewers en

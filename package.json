@@ -13,7 +13,13 @@
   "commitlint": {
     "extends": [
       "@commitlint/config-conventional"
-    ]
+    ],
+    "rules": {
+      "scope-empty": [
+        2,
+        "always"
+      ]
+    }
   },
   "packageManager": "pnpm@12.21.0"
 }
