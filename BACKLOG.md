@@ -2,6 +2,23 @@
 
 ## Goals
 
+### ci-green
+
+El CI de GitHub pasa en `main`. Done when: el run del workflow `check` sobre el último commit de
+`main` termina en verde en GitHub. Primero, porque el CI sigue fallando: con los componentes ya
+declarados, las tareas de Rust corren en paralelo y cada `cargo` trata de instalar a la vez la
+versión del proyecto, y alguna queda sin `cargo`. Surgió en el segundo push, tras
+`rust-toolchain-components`.
+
+- **rust-toolchain-install-once**: short. Outcome: la versión de Rust del proyecto se instala una
+  sola vez antes de que corran las tareas de Rust. In scope: un paso `rustup toolchain install
+  --no-self-update` antes de `moon run :check`, en el hook de pre-commit y en el workflow, del mismo
+  modo en ambos para que no se desalineen, como hace aikuora en su hook. Out of scope: cualquier
+  otro cambio al workflow o a las tareas. Condición: external evidence. Antes del merge, el check
+  local pasa, el workflow pasa su linter, y el implementer reproduce la carrera en un `RUSTUP_HOME`
+  limpio y ve que el paso la evita; el run verde en GitHub lo confirma el peer después del push.
+  Scope: project.
+
 ### coordinated-goal
 
 La persona define un goal con su peer, y un coordinator lo construye con implementers y reviewers en
