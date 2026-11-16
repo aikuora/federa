@@ -46,14 +46,6 @@ decisiones de dirección están en `AGENTS.md`.
   pidiendo un código pegado, la app abre una terminal con el inicio de sesión corriendo en vez de
   pedir el código ella misma. Surgió en el change `claude-engine`, cuando la persona decidió que los
   agentes corren con una carpeta de configuración propia de Federa.
-- **runtime-server**: full. Outcome: el runtime corre como proceso propio y atiende clientes. In
-  scope: `apps/runtime`, que conecta `kernel`, `federation` y `claude`, sirve el protocolo por
-  WebSocket solo en `127.0.0.1`, guarda sus datos en una carpeta propia que contiene la carpeta de
-  configuración de Claude de Federa, toma la identidad de la persona de `git config user.email`, con
-  un token en un archivo que solo el usuario puede leer, y responde el saludo de versión. Out of
-  scope: apagado por inactividad, ícono en la barra del sistema y reemplazo de otra versión. Done
-  when: un cliente de prueba se conecta con el token, se rechaza sin él, y crea una organización.
-  Extends: runtime. After: kernel-asset.
 - **kernel-tools**: full. Outcome: los agentes usan herramientas de Federa por MCP. In scope: el
   runtime atiende MCP por HTTP; cada agente recibe un token propio con su rol, su sesión, su activo
   y su goal, y el kernel sabe quién llama en cada pedido; el runtime agrega al sandbox del agente el

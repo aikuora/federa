@@ -1,8 +1,8 @@
-# Only `crates/*`: cargo fails on a glob member that matches nothing, and the Rust apps join by name
-# when each one is created.
+# `crates/*` as a glob and each Rust app by name: cargo fails on a glob member that matches nothing,
+# and not every folder in `apps/` is a Rust package.
 [workspace]
 resolver = "3"
-members = ["crates/*"]
+members = ["crates/*", "apps/runtime"]
 
 [workspace.package]
 license = "Apache-2.0"
