@@ -53,6 +53,9 @@ La app se conecta a un runtime que corre en un servidor, con los agentes trabaja
   commitlint. Scope: project. Corre apenas termina el goal `asset-conversation` y antes del primer
   push, junto con reescribir la historia de `main` para quitar los scopes existentes, que hace el
   peer con una rama de respaldo. Surgió durante el goal `asset-conversation`.
+- **knowledge-checks**: los checks de conocimiento que faltan: cada boundary tiene su header, los
+  comandos y rutas que nombran `AGENTS.md` y cada `README.md` existen, y cada `Scope:` de
+  `BACKLOG.md` nombra un punto que existe. Scope: project. Surgió en el goal `asset-conversation`.
 
 ### Dirección
 
@@ -75,14 +78,36 @@ La app se conecta a un runtime que corre en un servidor, con los agentes trabaja
   Extends: federation. Surgió en el capture `foundation`.
 - **conversation-portability**: copiar las conversaciones de una persona a otra máquina, porque hoy
   quedan solo en su runtime. Extends: kernel. Surgió al definir el goal `asset-conversation`.
+- **organization-identity**: el dueño de un activo es la identidad de git dentro del repo de
+  federación de esa organización, no la global del runtime, porque una persona puede usar correos
+  distintos por carpeta. Extends: kernel. Surgió en el goal `asset-conversation`.
+- **remote-asset-location**: el kernel une el repo y la carpeta de un activo suponiendo una ruta
+  local; esa unión pasa a `federation` cuando el repo sea una URL remota. Scope: federation/catalog.
+  Surgió en el goal `asset-conversation`.
+- **moved-asset-session**: un activo que se mueve de carpeta ya no puede retomar la sesión de
+  `claude` guardada, y su peer falla cada mensaje hasta que esa sesión se limpie. Scope:
+  kernel/peer. Surgió en el goal `asset-conversation`.
 
 ### Runtime
 
 - **runtime-lifecycle**: el resto del ciclo de vida decidido en `AGENTS.md`: el runtime se apaga
   solo tras un rato sin agentes trabajando ni clientes conectados, se muestra en la barra del
   sistema mientras tiene agentes trabajando, la app reemplaza un runtime de otra versión sin agentes
-  y avisa si tiene agentes, y el instalador trae el runtime como sidecar de Tauri. Extends: runtime.
-  Surgió al definir el goal `asset-conversation`.
+  y avisa si tiene agentes, y el instalador trae el runtime como sidecar de Tauri. También: un
+  segundo runtime sobre la misma carpeta de datos se niega a arrancar mientras el publicado responde;
+  el runtime que arranca la app escribe su stderr en la carpeta de datos para que la app muestre por
+  qué terminó, y la app lo recoge al cerrarse; y los íconos `.icns` de macOS al empaquetar. Extends:
+  runtime. Surgió al definir el goal `asset-conversation`.
+
+### Interfaz
+
+- **app-messages**: los errores que ve la persona están en el idioma de la app y dicen qué hacer,
+  como el que aparece al abrir como organización la carpeta de un activo, hoy en inglés y sin
+  indicación. Scope: desktop/organization-setup. Surgió en el recorrido final del goal
+  `asset-conversation`.
+- **peer-markdown**: las respuestas del peer se muestran con su Markdown formateado, no con los `**`
+  a la vista. Scope: desktop/asset-conversation. Surgió en el recorrido final del goal
+  `asset-conversation`.
 
 ### Motores
 
