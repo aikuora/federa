@@ -14,14 +14,6 @@ persona y herramientas MCP) y saca el riesgo técnico más grande: manejar el bi
 `claude` desde Rust. Trae además la base del proyecto. Surgió en el capture `foundation`; sus
 decisiones de dirección están en `AGENTS.md`.
 
-- **federation-store**: full. Outcome: Federa crea y abre un repo de federación y registra un activo
-  en su catálogo. In scope: el crate `federation`, detrás de su interfaz; `organization/knowledge.md`;
-  `assets/<activo>.toml` con dueño, ubicación (repo y carpeta), etapa y si está gestionado; leer el
-  `.federa/asset.toml` y el `.federa/knowledge.md` de un activo. Out of scope: productos, que siguen
-  implícitos; `work/`; contratos entre activos. Done when: un test crea un repo de federación, le
-  registra un activo de prueba con su `.federa/` y lo vuelve a leer. Extends: federation. After:
-  project-base. Decidido: TOML para lo estructurado y Markdown para el conocimiento, con
-  `schema = 1` en cada TOML; se reescribe en su lugar hasta la primera versión publicada.
 - **claude-engine**: full. Outcome: el kernel puede abrir un agente en Claude y conversar con él a
   través del contrato de motores. In scope: el crate `engine` con el contrato común (abrir un agente
   con su rol e instrucciones, mandarle un mensaje, recibir sus eventos, cerrarlo); el crate `claude`,
