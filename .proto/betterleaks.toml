@@ -1,0 +1,28 @@
+name = "betterleaks"
+type = "cli"
+
+[platform.linux]
+download-file = "betterleaks_{version}_linux_{arch}.tar.gz"
+checksum-file = "checksums.txt"
+
+[platform.macos]
+download-file = "betterleaks_{version}_darwin_{arch}.tar.gz"
+checksum-file = "checksums.txt"
+
+[platform.windows]
+download-file = "betterleaks_{version}_windows_{arch}.zip"
+checksum-file = "checksums.txt"
+
+[install]
+download-url = "https://github.com/betterleaks/betterleaks/releases/download/v{version}/{download_file}"
+checksum-url = "https://github.com/betterleaks/betterleaks/releases/download/v{version}/{checksum_file}"
+
+[install.arch]
+aarch64 = "arm64"
+x86_64 = "x64"
+
+[install.exes.betterleaks]
+primary = true
+
+[resolve]
+git-url = "https://github.com/betterleaks/betterleaks"

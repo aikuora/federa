@@ -1,4 +1,8 @@
 .claude/worktrees/
+node_modules/
+target/
+.moon/cache/
+.moon/hooks/
 
 .DS_Store
 ._*

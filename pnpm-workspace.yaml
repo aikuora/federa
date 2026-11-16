@@ -1,0 +1,9 @@
+packages:
+  - 'apps/*'
+  - 'crates/*'
+
+# Vite+ bundles its own Vite and Vitest; every package resolves those copies, so `vp test` and any
+# dependency share one runner.
+overrides:
+  vite@*: npm:@voidzero-dev/vite-plus-core@1.6.0
+  vitest@*: 5.1.0

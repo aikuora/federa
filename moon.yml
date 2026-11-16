@@ -1,0 +1,54 @@
+# The tasks that span the whole repository.
+tasks:
+  check:
+    description: 'Every check of the project; CI and the pre-commit hook run it through `:check`.'
+    command: 'noop'
+    deps:
+      - 'vp-check'
+      - 'vp-test'
+      - 'ts-licenses'
+      - 'rust-fmt'
+      - 'clippy'
+      - 'rust-test'
+      - 'deny'
+      - 'secrets'
+      - 'workflows'
+      - 'lines'
+      - 'agents-cap'
+      - 'readmes'
+  vp-check:
+    description: 'Formatting, lint and types of TypeScript, and formatting of the rest.'
+    command: 'vp check'
+  vp-test:
+    command: 'vp test run'
+  ts-licenses:
+    command: 'license-checker-rseidelsohn --summary --excludePrivatePackages --onlyAllow "MIT;ISC;Apache-2.0;BSD-2-Clause;BSD-3-Clause;0BSD;BlueOak-1.0.0;CC0-1.0;CC-BY-3.0;CC-BY-4.0;MPL-2.0;Python-2.0;Unlicense"'
+  # Every cargo command fails on a workspace with no crates, so the Rust tasks skip until one exists.
+  rust-fmt:
+    command: 'cargo fmt --all --check'
+    checks: &no-crates
+      - check: 'condition'
+        script: '! ls crates/*/Cargo.toml > /dev/null 2>&1'
+  clippy:
+    command: 'cargo clippy --workspace --all-targets -- -D warnings'
+    checks: *no-crates
+  rust-test:
+    command: 'cargo test --workspace'
+    checks: *no-crates
+  deny:
+    description: 'Licenses, advisories and the direction between crates, in `deny.toml`.'
+    command: 'cargo deny --workspace check'
+    checks: *no-crates
+  secrets:
+    command: 'betterleaks git --redact --no-banner'
+  workflows:
+    command: 'actionlint'
+  lines:
+    command: 'node scripts/check-lines.ts'
+  agents-cap:
+    command: 'node scripts/check-agents-cap.ts'
+  readmes:
+    command: 'node scripts/check-readmes.ts'
+
+taskOptions:
+  cache: false

@@ -1,0 +1,22 @@
+projects:
+  globs:
+    - 'apps/*'
+    - 'crates/*'
+  sources:
+    root: '.'
+
+vcs:
+  client: 'git'
+  defaultBranch: 'main'
+  # Not synced on every run: moon writes `core.hooksPath` as an absolute path into the git config
+  # every worktree shares, so a sync from a worktree would leave every checkout without hooks once
+  # that worktree is removed. They are installed once, from the main checkout.
+  sync: false
+  hooks:
+    pre-commit:
+      # Only the staged diff, which the history scan of `:check` cannot see yet.
+      - 'betterleaks git --pre-commit --staged --redact --no-banner'
+      - 'moon run :check'
+    # git hands the hook the path of the message file, and moon exposes it as `ARG1`.
+    commit-msg:
+      - 'pnpm exec commitlint --edit "$ARG1"'

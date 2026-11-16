@@ -268,17 +268,29 @@ flowchart LR
   como `claude`; `federation`, cómo se guarda el repo de federación y cada `.federa/`; y `kernel`,
   la lógica. Las apps viven en `apps/`: `runtime`, que conecta los crates, y `desktop`.
 - Las dependencias siguen una sola dirección: `kernel` conoce `engine` y `federation` pero nunca un
-  motor concreto, y los clientes solo conocen `protocol`. Un check de dependencias lo verifica.
+  motor concreto, y los clientes solo conocen `protocol`. `cargo-deny` lo verifica en la tarea `deny`.
 - Dentro de cada crate y de `desktop`, los módulos se reparten por concepto, no por capa técnica:
   agregar algo es agregar una carpeta, no hacer crecer un archivo. Ningún archivo de código pasa de
-  300 líneas sin contar tests, y un check lo verifica.
+  300 líneas sin contar tests, y la tarea `lines` lo verifica.
 - Lo público de cada crate es lo mínimo; por defecto todo es `pub(crate)`.
 
 ### Licencia
 
 - La app se publica bajo Apache-2.0, para que cualquier persona o empresa la use y la modifique sin
-  fricción legal. Ninguna dependencia puede traer una licencia que lo impida, como GPL o AGPL, y un
-  check de licencias de dependencias lo verifica en Rust y en TypeScript.
+  fricción legal. Ninguna dependencia puede traer una licencia que lo impida, como GPL o AGPL, y lo
+  verifican `cargo-deny` en Rust y `license-checker-rseidelsohn` en TypeScript.
+
+### Desarrollo
+
+- proto fija en `.prototools` la versión de cada herramienta, y moon corre las tareas y los hooks de
+  git.
+- Vite+ formatea, lintea, revisa tipos con TypeScript 7 y corre los tests de Vitest desde un único
+  `vite.config.ts` en la raíz.
+- Se prepara una vez desde el checkout principal con `proto trust && proto install && pnpm install
+  && moon sync hooks`. Los hooks nunca se instalan desde un worktree, porque moon escribe su ruta en
+  la configuración de git que comparten todos.
+- `moon run :check` corre toda la suite y los checks del proyecto, y es lo mismo que corren el hook
+  pre-commit y CI.
 
 ### Repositorio
 
@@ -288,7 +300,7 @@ flowchart LR
   `vMAJOR.MINOR.PATCH` sobre `main`, y una rama desde un tag existe solo para un hotfix.
 - Lo que entra a `main` sin estar listo para usuarios queda detrás de un feature flag.
 - El peer hace push de `main` a GitHub cuando termina cada goal.
-- Los commits siguen Conventional Commits, verificado por un check en commit-msg.
+- Los commits siguen Conventional Commits, verificado por commitlint en commit-msg.
 - Los worktrees de `.claude/worktrees/` quedan fuera de git y de toda herramienta que recorra el
   repo para testear, analizar, construir, formatear o empaquetar.
-- `AGENTS.md` no pasa de 300 líneas, y un check lo verifica.
+- `AGENTS.md` no pasa de 500 líneas, y la tarea `agents-cap` lo verifica.
