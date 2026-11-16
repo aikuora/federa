@@ -14,23 +14,6 @@ persona y herramientas MCP) y saca el riesgo técnico más grande: manejar el bi
 `claude` desde Rust. Trae además la base del proyecto. Surgió en el capture `foundation`; sus
 decisiones de dirección están en `AGENTS.md`.
 
-- **project-base**: short. Outcome: el repo tiene su base de trabajo y sus checks corren en cada
-  commit y en CI. In scope: proto con las versiones de toolchains; moon para tareas y hooks de git,
-  instalados una sola vez desde el checkout principal y nunca sincronizados desde un worktree,
-  porque moon escribe la ruta de los hooks en la configuración que comparten todos; workspaces de
-  Cargo y pnpm que toman todo `crates/*` y `apps/*`, así ningún change paralelo edita el mismo
-  manifiesto; rustfmt, clippy, cargo-deny (licencias, vulnerabilidades y la dirección de
-  dependencias entre crates de `AGENTS.md`); TypeScript 7 con Vite+ (Vite, Vitest, Oxlint y Oxfmt en
-  un `vite.config.ts` raíz); commitlint en `commit-msg`; betterleaks; license-checker para
-  TypeScript; un check de 300 líneas por archivo de código sin contar tests; un check de tope de
-  `AGENTS.md`; un check de la estructura de cada `README.md`; `.claude/worktrees/` fuera de toda
-  herramienta; GitHub Actions corriendo las mismas tareas de moon; el `LICENSE` Apache-2.0.
-  Escribe en `AGENTS.md` el stack de desarrollo y los comandos del proyecto, y sube su tope a 500
-  líneas. Out of scope: crates y apps, que traen los demás changes. Done when: un commit con un
-  mensaje fuera de Conventional Commits se rechaza, un secreto de prueba se rechaza, y la tarea de
-  checks de moon pasa en local y en CI. Scope: project. Decidido: el stack de arriba; la
-  configuración de moon y de Vite+ de `/Users/ccosming/Github/aikuora/aikuora` sirve de referencia,
-  sin copiar sus reglas propias.
 - **protocol-contract**: full. Outcome: existe el contrato entre clientes y runtime. In scope: el
   crate `protocol` con los comandos y eventos de crear y abrir una organización, registrar un activo,
   listar activos, y conversar con el peer de un activo (enviar mensaje, recibir la respuesta en
