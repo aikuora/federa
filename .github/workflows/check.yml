@@ -24,4 +24,6 @@ jobs:
       - run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev libxdo-dev libssl-dev librsvg2-dev
+      # The pre-commit hook's step in `.moon/workspace.yml`, whose comment gives the reason.
+      - run: rustup toolchain install --no-self-update
       - run: moon run :check

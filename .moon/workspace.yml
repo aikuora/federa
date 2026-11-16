@@ -10,12 +10,18 @@ vcs:
   defaultBranch: 'main'
   # Not synced on every run: moon writes `core.hooksPath` as an absolute path into the git config
   # every worktree shares, so a sync from a worktree would leave every checkout without hooks once
-  # that worktree is removed. They are installed once, from the main checkout.
+  # that worktree is removed. They are installed once, from the main checkout, and synced there
+  # again with `moon sync hooks` whenever this list changes, since a merge does not regenerate them.
   sync: false
   hooks:
     pre-commit:
       # Only the staged diff, which the history scan of `:check` cannot see yet.
       - 'betterleaks git --pre-commit --staged --redact --no-banner'
+      # rustup installs the channel and components of `rust-toolchain.toml` once: the cargo tasks
+      # of `:check` run in parallel, and each would race to install them. rustup skips its own
+      # update check, which reaches the network even when they are installed. The workflow runs the
+      # same step.
+      - 'rustup toolchain install --no-self-update'
       - 'moon run :check'
     # git hands the hook the path of the message file, and moon exposes it as `ARG1`.
     commit-msg:
