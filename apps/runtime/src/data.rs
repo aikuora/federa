@@ -45,6 +45,12 @@ impl DataFolder {
         &self.root
     }
 
+    /// The configuration folder of Claude the app's agents run with, so nothing of the person's own
+    /// setup reaches them.
+    pub(crate) fn claude_config(&self) -> PathBuf {
+        self.root.join("claude")
+    }
+
     /// Writes where clients find this runtime, readable and writable only by its owner.
     pub(crate) fn publish(&self, port: u16, token: &Token) -> io::Result<()> {
         let text = toml::to_string(&Published {

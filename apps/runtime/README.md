@@ -32,7 +32,8 @@ machine or on a server.
 - `runtime.toml` in the data folder: `schema = 1`, the `port` and the `token`, readable only by its
   owner. A client reads it to find the runtime.
 - The WebSocket at `ws://127.0.0.1:<port>/`, which takes the token as `Authorization: Bearer
-  <token>` and then speaks the `protocol` crate's frames as JSON text messages.
+  <token>` and then speaks the `protocol` crate's frames as JSON text messages. Every event the
+  kernel announces goes to every open connection, after the reply of the command that caused it.
 - The MCP endpoint at `http://127.0.0.1:<port>/mcp`, which takes an agent's token as
   `Authorization: Bearer <token>` and answers `initialize`, `tools/list` and `tools/call` over
   MCP's Streamable HTTP transport, each with one JSON body and no session.
@@ -40,6 +41,8 @@ machine or on a server.
   as the `dirs` crate's `data_dir` gives it (`~/Library/Application Support/federa` on macOS,
   `$XDG_DATA_HOME/federa` or `~/.local/share/federa` on Linux, `%APPDATA%\federa` on Windows). A
   client computes the same path to find `runtime.toml`.
+- The `claude` found on `PATH`, which the agents run on. Without it, or with one older than the
+  minimum, the runtime still starts, and the sign-in status says why the agents cannot run.
 - The person's identity: `user.email` in git's global configuration or a file it includes, read
   from the data folder so an `includeIf` does not depend on where the runtime starts. Without it the
   runtime exits with an error that says how to set it.
@@ -55,6 +58,7 @@ machine or on a server.
 
 - The tests in `tests/` run the real binary with a temporary `FEDERA_DATA_DIR` and a git
   configuration of their own (`GIT_CONFIG_GLOBAL`), read its `runtime.toml` and connect as a
-  client. They need the `git` binary.
+  client. They put the fake `claude` of `crates/claude/fake` first on `PATH`, so the real one never
+  runs, and need the `git` and `node` binaries and a shell, so they run only on Unix.
 - The tests in `src/server.rs` drive the served routes in-process, admitting agents in the kernel
   directly, which a test outside the process cannot do. They need the `git` binary too.

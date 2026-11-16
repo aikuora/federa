@@ -5,16 +5,18 @@
 use std::os::unix::fs::PermissionsExt;
 
 use claude::Claude;
-use engine::{AgentSpec, Engine, Event};
+use engine::{AgentSpec, Engine, Event, SignIn};
 
 #[tokio::test]
 async fn passes_the_binary_none_of_the_runtimes_secrets() {
     let folder = std::env::temp_dir().join(format!("claude-environment-{}", std::process::id()));
     std::fs::create_dir_all(&folder).unwrap();
     let binary = folder.join("claude");
-    // Answers with what it sees of three variables: a secret, its own folder and its home.
+    // Answers with what it sees of three variables: a secret, its own folder and its home. Like the
+    // real binary with a key in its environment, it says it is signed in when it sees the secret.
     let script = r#"#!/bin/sh
 if [ "$1" = --version ]; then echo "2.1.311 (Claude Code)"; exit 0; fi
+if [ "$1 $2" = "auth status" ]; then test -n "$RUNTIME_SECRET"; exit; fi
 read -r line
 seen="${RUNTIME_SECRET:-none}|$CLAUDE_CONFIG_DIR|${HOME:+home}"
 echo '{"type":"system","subtype":"init","session_id":"s1"}'
@@ -27,6 +29,7 @@ echo '{"type":"result","subtype":"success","is_error":false}'
     unsafe { std::env::set_var("RUNTIME_SECRET", "sk-not-for-agents") };
     let config = folder.join("config");
     let claude = Claude::new(binary, config.clone()).unwrap();
+    assert_eq!(claude.sign_in_status().unwrap(), SignIn::SignedOut);
     let spec = AgentSpec {
         instructions: "You are a test agent.".into(),
         workdir: folder.clone(),

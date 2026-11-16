@@ -8,12 +8,14 @@ mod conversation;
 mod failure;
 mod frame;
 mod organization;
+mod sign_in;
 
 pub use asset::{Asset, AssetName, Stage};
 pub use conversation::{Author, Conversation, Message, TurnId};
 pub use failure::{Failure, FailureCode};
 pub use frame::{ClientFrame, Command, Event, Hello, Outcome, Reply, RequestId, RuntimeFrame};
 pub use organization::Organization;
+pub use sign_in::SignInStatus;
 
 /// The version of this contract. Both sides declare it in their `Hello`.
 pub const VERSION: u32 = 1;

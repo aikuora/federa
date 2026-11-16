@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use ts_rs::TS;
 
-use crate::{Asset, AssetName, Conversation, Failure, Organization, TurnId};
+use crate::{Asset, AssetName, Conversation, Failure, Organization, SignInStatus, TurnId};
 
 /// The greeting each side sends first on a connection, declaring the protocol version it speaks.
 /// When the versions differ, the client warns the person and the runtime closes the connection.
@@ -45,6 +45,8 @@ pub enum Outcome {
 /// federation repository of a new organization and opens it, and `register_asset` takes the folder
 /// that holds the asset's `.federa/`. `send_message` is answered with `message_accepted` and the
 /// turn of the peer's answer, which then arrives as the `peer_*` events of that turn.
+/// `start_sign_in` starts the engine's official sign-in and answers `signing_in`, or `unavailable`
+/// with the reason; every later change of the status arrives as `sign_in_changed`.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(tag = "command", rename_all = "snake_case")]
 pub enum Command {
@@ -54,6 +56,8 @@ pub enum Command {
     ListAssets,
     SendMessage { asset: AssetName, text: String },
     LoadConversation { asset: AssetName },
+    SignInStatus,
+    StartSignIn,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
@@ -64,12 +68,13 @@ pub enum Reply {
     Assets { assets: Vec<Asset> },
     MessageAccepted { turn: TurnId },
     Conversation { conversation: Conversation },
+    SignIn { status: SignInStatus },
 }
 
 /// The peer's answer, which arrives after the `message_accepted` reply that named its turn, so a
 /// client always knows the turn before its parts. The `peer_part` events of a turn come in order,
 /// and the turn ends with one `peer_done`, whose parts joined are the stored message, or one
-/// `peer_failed`.
+/// `peer_failed`. `sign_in_changed` carries the engine's new sign-in status whenever it changes.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, TS)]
 #[serde(tag = "event", rename_all = "snake_case")]
 pub enum Event {
@@ -86,6 +91,9 @@ pub enum Event {
         asset: AssetName,
         turn: TurnId,
         failure: Failure,
+    },
+    SignInChanged {
+        status: SignInStatus,
     },
 }
 

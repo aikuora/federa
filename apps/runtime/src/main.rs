@@ -44,5 +44,9 @@ async fn run() -> io::Result<()> {
                 ),
             )
         })?;
-    server::serve(listener, token, Arc::new(Kernel::new(person))).await
+    // Without Claude the runtime still serves organizations and assets, and clients show why.
+    let engine = claude::Claude::new("claude".into(), data.claude_config())
+        .map(|claude| Arc::new(claude) as Arc<dyn engine::Engine>)
+        .map_err(|e| e.to_string());
+    server::serve(listener, token, Arc::new(Kernel::new(person, engine))).await
 }

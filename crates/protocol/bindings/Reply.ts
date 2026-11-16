@@ -2,6 +2,7 @@
 import type { Asset } from "./Asset.ts";
 import type { Conversation } from "./Conversation.ts";
 import type { Organization } from "./Organization.ts";
+import type { SignInStatus } from "./SignInStatus.ts";
 import type { TurnId } from "./TurnId.ts";
 
-export type Reply = { "reply": "organization", organization: Organization, } | { "reply": "asset", asset: Asset, } | { "reply": "assets", assets: Array<Asset>, } | { "reply": "message_accepted", turn: TurnId, } | { "reply": "conversation", conversation: Conversation, };
+export type Reply = { "reply": "organization", organization: Organization, } | { "reply": "asset", asset: Asset, } | { "reply": "assets", assets: Array<Asset>, } | { "reply": "message_accepted", turn: TurnId, } | { "reply": "conversation", conversation: Conversation, } | { "reply": "sign_in", status: SignInStatus, };

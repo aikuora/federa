@@ -3,10 +3,12 @@ use std::sync::Arc;
 use axum::extract::ws::{Message, WebSocket};
 use kernel::Kernel;
 use protocol::{ClientFrame, Hello, RuntimeFrame, VERSION};
+use tokio::sync::broadcast::error::RecvError;
 
 /// One client, from its `Hello` to its close. The runtime answers the client's `Hello` with its
 /// own, and closes the connection when the client's is missing or declares another version; then
-/// every command goes to the kernel and its outcome goes back as the reply of that request.
+/// every command goes to the kernel and its outcome goes back as the reply of that request, and
+/// every event the kernel announces goes to the client too.
 pub(crate) async fn run(mut socket: WebSocket, kernel: Arc<Kernel>) {
     let Some(ClientFrame::Hello(hello)) = receive(&mut socket).await else {
         return;
@@ -16,10 +18,28 @@ pub(crate) async fn run(mut socket: WebSocket, kernel: Arc<Kernel>) {
     if !send(&mut socket, &ours).await || hello.protocol != VERSION {
         return;
     }
-    // A frame that is not a command carries no request id to reply to, so it ends the connection.
-    while let Some(ClientFrame::Command { id, command }) = receive(&mut socket).await {
-        let outcome = kernel.handle(command).await;
-        if !send(&mut socket, &RuntimeFrame::Reply { id, outcome }).await {
+    let mut events = kernel.subscribe();
+    loop {
+        // A command is answered before the next event is taken, so its reply always reaches the
+        // client before any event the command caused.
+        let frame = tokio::select! {
+            received = receive(&mut socket) => match received {
+                Some(ClientFrame::Command { id, command }) => RuntimeFrame::Reply {
+                    id,
+                    outcome: kernel.handle(command).await,
+                },
+                // A frame that is not a command carries no request id to reply to, so it ends the
+                // connection.
+                _ => return,
+            },
+            announced = events.recv() => match announced {
+                Ok(event) => RuntimeFrame::Event { event },
+                // A client too slow to keep up misses the events in between, not the later ones.
+                Err(RecvError::Lagged(_)) => continue,
+                Err(RecvError::Closed) => return,
+            },
+        };
+        if !send(&mut socket, &frame).await {
             return;
         }
     }

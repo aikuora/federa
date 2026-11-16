@@ -1,6 +1,10 @@
+//! The runtime binary as a client sees it. It runs the fake `claude`, a shell launcher, so these
+//! run where a shell does.
+#![cfg(unix)]
+
 use std::{
-    fs,
-    path::Path,
+    env, fs,
+    path::{Path, PathBuf},
     process::{Child, Command, Output, Stdio},
     thread,
     time::{Duration, Instant},
@@ -8,8 +12,8 @@ use std::{
 
 use futures_util::{SinkExt, StreamExt};
 use protocol::{
-    ClientFrame, Command as ProtocolCommand, Hello, Organization, Outcome, Reply, RequestId,
-    RuntimeFrame, VERSION,
+    ClientFrame, Command as ProtocolCommand, Event, Hello, Organization, Outcome, Reply, RequestId,
+    RuntimeFrame, SignInStatus, VERSION,
 };
 use serde::Deserialize;
 use tempfile::TempDir;
@@ -45,13 +49,22 @@ impl Drop for Runtime {
 
 const IDENTITY: &str = "[user]\n\temail = ada@example.com\n";
 
+/// The folder of the fake `claude`, which every runtime here finds first on `PATH`, so the real one
+/// never runs.
+fn fake_claude() -> PathBuf {
+    Path::new(env!("CARGO_MANIFEST_DIR")).join("../../crates/claude/fake")
+}
+
 /// The runtime on `dir`, with `gitconfig` as git's global configuration.
 fn command(dir: &Path, gitconfig: &str) -> Command {
     let file = dir.join("gitconfig");
     fs::write(&file, gitconfig).unwrap();
+    let path = env::var_os("PATH").unwrap_or_default();
+    let folders = [fake_claude()].into_iter().chain(env::split_paths(&path));
     let mut runtime = Command::new(env!("CARGO_BIN_EXE_runtime"));
     runtime
         .env("FEDERA_DATA_DIR", dir.join("data"))
+        .env("PATH", env::join_paths(folders).unwrap())
         .env("GIT_CONFIG_GLOBAL", &file)
         .env("GIT_CONFIG_NOSYSTEM", "1")
         .env_remove("GIT_DIR")
@@ -66,10 +79,28 @@ fn start() -> Runtime {
 
 fn start_with(gitconfig: &str) -> Runtime {
     let data = tempfile::tempdir().unwrap();
-    let mut child = command(data.path(), gitconfig)
-        .stderr(Stdio::null())
-        .spawn()
+    let command = command(data.path(), gitconfig);
+    launch(data, command)
+}
+
+/// A runtime that finds git on its `PATH` and no `claude`.
+fn start_without_claude() -> Runtime {
+    let data = tempfile::tempdir().unwrap();
+    let path = env::var_os("PATH").unwrap_or_default();
+    let git = env::split_paths(&path)
+        .map(|folder| folder.join("git"))
+        .find(|git| git.exists())
         .unwrap();
+    let only_git = data.path().join("bin");
+    fs::create_dir(&only_git).unwrap();
+    std::os::unix::fs::symlink(git, only_git.join("git")).unwrap();
+    let mut command = command(data.path(), IDENTITY);
+    command.env("PATH", &only_git);
+    launch(data, command)
+}
+
+fn launch(data: TempDir, mut command: Command) -> Runtime {
+    let mut child = command.stderr(Stdio::null()).spawn().unwrap();
     let file = data.path().join("data/runtime.toml");
     let deadline = Instant::now() + Duration::from_secs(10);
     while !file.exists() {
@@ -109,6 +140,48 @@ async fn receive(socket: &mut Socket) -> Option<RuntimeFrame> {
     }
 }
 
+/// A connection whose `Hello` the runtime already answered.
+async fn greeted(runtime: &Runtime) -> Socket {
+    let mut socket = connect(runtime, Some(&runtime.published.token))
+        .await
+        .unwrap();
+    send(&mut socket, ClientFrame::Hello(Hello { protocol: VERSION })).await;
+    let hello = receive(&mut socket).await;
+    assert_eq!(
+        hello,
+        Some(RuntimeFrame::Hello(Hello { protocol: VERSION }))
+    );
+    socket
+}
+
+/// Sends `command` and returns its reply, which must be the next frame.
+async fn ask(socket: &mut Socket, id: u32, command: ProtocolCommand) -> Outcome {
+    send(
+        socket,
+        ClientFrame::Command {
+            id: RequestId(id),
+            command,
+        },
+    )
+    .await;
+    match receive(socket).await {
+        Some(RuntimeFrame::Reply {
+            id: replied,
+            outcome,
+        }) if replied == RequestId(id) => outcome,
+        frame => panic!("{frame:?}"),
+    }
+}
+
+async fn sign_in_status(socket: &mut Socket, id: u32, command: ProtocolCommand) -> SignInStatus {
+    match ask(socket, id, command).await {
+        Outcome::Done {
+            reply: Reply::SignIn { status },
+        } => status,
+        outcome => panic!("{outcome:?}"),
+    }
+}
+
 fn refused_status(result: Result<Socket, tungstenite::Error>) -> StatusCode {
     match result {
         Err(tungstenite::Error::Http(response)) => response.status(),
@@ -117,7 +190,6 @@ fn refused_status(result: Result<Socket, tungstenite::Error>) -> StatusCode {
     }
 }
 
-#[cfg(unix)]
 #[test]
 fn publishes_where_to_connect_readable_only_by_its_owner() {
     use std::os::unix::fs::PermissionsExt;
@@ -239,4 +311,41 @@ fn takes_the_email_from_a_file_the_global_configuration_includes() {
     fs::write(&identity, IDENTITY).unwrap();
     let runtime = start_with(&format!("[include]\n\tpath = {}\n", identity.display()));
     assert_eq!(runtime.published.schema, 1);
+}
+
+#[tokio::test]
+async fn a_client_signs_claude_in_and_hears_when_it_is() {
+    let runtime = start();
+    let mut socket = greeted(&runtime).await;
+    let status = sign_in_status(&mut socket, 1, ProtocolCommand::SignInStatus).await;
+    assert_eq!(status, SignInStatus::SignedOut);
+    // The reply comes before the event the command caused.
+    let status = sign_in_status(&mut socket, 2, ProtocolCommand::StartSignIn).await;
+    assert_eq!(status, SignInStatus::SigningIn);
+    for status in [SignInStatus::SigningIn, SignInStatus::SignedIn] {
+        let event = Event::SignInChanged { status };
+        assert_eq!(
+            receive(&mut socket).await,
+            Some(RuntimeFrame::Event { event })
+        );
+    }
+    let status = sign_in_status(&mut socket, 3, ProtocolCommand::SignInStatus).await;
+    assert_eq!(status, SignInStatus::SignedIn);
+}
+
+#[tokio::test]
+async fn without_claude_serves_organizations_and_says_why_agents_cannot_run() {
+    let runtime = start_without_claude();
+    let mut socket = greeted(&runtime).await;
+    let status = sign_in_status(&mut socket, 1, ProtocolCommand::SignInStatus).await;
+    let SignInStatus::Unavailable { reason } = status else {
+        panic!("{status:?}");
+    };
+    assert!(reason.contains("claude could not be run"), "{reason}");
+    let create = ProtocolCommand::CreateOrganization {
+        folder: runtime.data.path().join("acme"),
+        name: "Acme".into(),
+    };
+    let outcome = ask(&mut socket, 2, create).await;
+    assert!(matches!(outcome, Outcome::Done { .. }), "{outcome:?}");
 }

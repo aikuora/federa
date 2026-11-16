@@ -14,20 +14,6 @@ persona y herramientas MCP) y saca el riesgo técnico más grande: manejar el bi
 `claude` desde Rust. Trae además la base del proyecto. Surgió en el capture `foundation`; sus
 decisiones de dirección están en `AGENTS.md`.
 
-- **claude-sign-in**: full. Outcome: la persona conecta Federa con su cuenta de Claude desde la
-  app, sin escribir comandos. In scope: el contrato de `engine` suma consultar si el motor tiene la
-  sesión iniciada y empezar su inicio de sesión oficial; `claude` lo hace con `claude auth status` y
-  `claude auth login --claudeai` contra la carpeta de configuración propia de Federa, que abre la
-  página de Anthropic en el navegador; `protocol` suma un comando para consultar el estado de la
-  conexión con Claude, otro para empezar el inicio de sesión y un evento cuando el estado cambia; el
-  kernel los atiende. Out of scope: el botón en la app, que trae `desktop-asset-view`; otros
-  motores. Done when: un test sin red, con un binario de prueba, ve el estado sin conectar, pide el
-  inicio de sesión y ve el estado conectado; y un test en vivo, que corre la persona, conecta una
-  carpeta de configuración nueva. Scope: claude/sign-in. Extends: engine, kernel. After:
-  claude-engine, kernel-asset. Decidido: Federa nunca lee el token; si `auth login` puede terminar
-  pidiendo un código pegado, la app abre una terminal con el inicio de sesión corriendo en vez de
-  pedir el código ella misma. Surgió en el change `claude-engine`, cuando la persona decidió que los
-  agentes corren con una carpeta de configuración propia de Federa.
 - **peer-on-asset**: full. Outcome: la persona conversa con su peer sobre un activo y la
   conversación queda guardada. In scope: el kernel abre el peer en el motor de Claude, con su rol y
   conectado a las herramientas MCP con el servidor y el token propio que le da al abrirlo, y
@@ -122,6 +108,10 @@ La app se conecta a un runtime que corre en un servidor, con los agentes trabaja
 
 ### Motores
 
+- **claude-remote-sign-in**: iniciar sesión en Claude cuando el runtime corre en un servidor remoto,
+  donde el navegador de la persona no puede volver al `claude` de esa máquina y `claude auth login`
+  pide pegar un código; dónde se pega ese código se decide entonces. Scope: claude/sign-in. Surgió
+  en el change `claude-sign-in`.
 - **claude-managed-install**: que la app instale y maneje su propia copia del `claude` oficial en una
   versión exacta, en vez de usar la que tiene la persona. Extends: claude. Surgió al definir el goal
   `asset-conversation`.

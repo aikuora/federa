@@ -6,16 +6,20 @@ mod agent;
 mod asset;
 mod failure;
 mod organization;
+mod sign_in;
 mod tools;
 
 use std::{
     collections::HashMap,
-    sync::{Mutex, PoisonError},
+    sync::{Arc, Mutex, MutexGuard, PoisonError},
 };
 
+use engine::Engine;
+
 use federation::Federation;
-use protocol::{Command, Failure, FailureCode, Outcome, Reply};
+use protocol::{Command, Event, Failure, FailureCode, Outcome, Reply};
 use serde_json::Value;
+use tokio::sync::broadcast;
 
 pub use agent::{AgentIdentity, AgentToken, Role};
 pub use tools::{Tool, ToolError};
@@ -30,20 +34,32 @@ pub struct Kernel {
     person: String,
     organization: Mutex<Option<Federation>>,
     agents: Mutex<HashMap<String, AgentIdentity>>,
+    engine: sign_in::Slot,
+    /// What the kernel announces on its own; every connected client gets it.
+    events: broadcast::Sender<Event>,
 }
 
 impl Kernel {
-    pub fn new(person: String) -> Self {
+    /// `engine` is the engine the agents run on, or why the runtime cannot run it; the kernel
+    /// still answers every command that needs no agent without one.
+    pub fn new(person: String, engine: Result<Arc<dyn Engine>, String>) -> Self {
         Self {
             person,
             organization: Mutex::new(None),
             agents: Mutex::new(HashMap::new()),
+            engine: sign_in::Slot::new(engine),
+            events: broadcast::channel(64).0,
         }
+    }
+
+    /// Every event the kernel announces from now on.
+    pub fn subscribe(&self) -> broadcast::Receiver<Event> {
+        self.events.subscribe()
     }
 
     /// Answers one command. Conversation commands answer `Internal` until the peer exists.
     pub async fn handle(&self, command: Command) -> Outcome {
-        match self.answer(command) {
+        match self.answer(command).await {
             Ok(reply) => Outcome::Done { reply },
             Err(failure) => Outcome::Failed { failure },
         }
@@ -53,10 +69,7 @@ impl Kernel {
     pub fn admit(&self, agent: AgentIdentity) -> AgentToken {
         // Locked as `call` and `replace` lock, organization first, so an agent is never admitted
         // while the organization is being replaced.
-        let _open = self
-            .organization
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner);
+        let _open = self.open();
         let token = AgentToken::generate();
         self.agents
             .lock()
@@ -74,10 +87,7 @@ impl Kernel {
     pub async fn call(&self, token: &str, tool: &str, input: Value) -> Result<String, ToolError> {
         // The organization is locked first, so it cannot be replaced, dismissing the agent, between
         // finding the agent and running its tool.
-        let open = self
-            .organization
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner);
+        let open = self.open();
         let agent = self.agent(token)?;
         let federation = open
             .as_ref()
@@ -104,37 +114,49 @@ impl Kernel {
         open.insert(federation)
     }
 
-    fn answer(&self, command: Command) -> Result<Reply, Failure> {
-        // The slot holds no invariant a panic could break halfway, so a poisoned lock is still
-        // safe to use, and one failed command does not fail every later one.
-        let mut open = self
-            .organization
-            .lock()
-            .unwrap_or_else(PoisonError::into_inner);
+    // The organization is locked only by the commands that use it, so the sign-in, which waits on
+    // the engine, never holds it.
+    async fn answer(&self, command: Command) -> Result<Reply, Failure> {
         match command {
             Command::CreateOrganization { folder, name } => {
+                let mut open = self.open();
                 let federation = self.replace(&mut open, organization::create(&folder, &name)?);
                 Ok(Reply::Organization {
                     organization: organization::summary(federation),
                 })
             }
             Command::OpenOrganization { folder } => {
+                let mut open = self.open();
                 let federation = self.replace(&mut open, organization::open(&folder)?);
                 Ok(Reply::Organization {
                     organization: organization::summary(federation),
                 })
             }
             Command::RegisterAsset { folder } => Ok(Reply::Asset {
-                asset: asset::register(opened(&open)?, &self.person, &folder)?,
+                asset: asset::register(opened(&self.open())?, &self.person, &folder)?,
             }),
             Command::ListAssets => Ok(Reply::Assets {
-                assets: asset::list(opened(&open)?)?,
+                assets: asset::list(opened(&self.open())?)?,
             }),
             Command::SendMessage { .. } | Command::LoadConversation { .. } => Err(Failure {
                 code: FailureCode::Internal,
                 message: "Conversations with the peer are not available yet.".to_owned(),
             }),
+            Command::SignInStatus => Ok(Reply::SignIn {
+                status: self.engine.status().await,
+            }),
+            Command::StartSignIn => Ok(Reply::SignIn {
+                status: self.engine.start(self.events.clone()),
+            }),
         }
+    }
+
+    fn open(&self) -> MutexGuard<'_, Option<Federation>> {
+        // The slot holds no invariant a panic could break halfway, so a poisoned lock is still
+        // safe to use, and one failed command does not fail every later one.
+        self.organization
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
     }
 }
 

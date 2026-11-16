@@ -7,14 +7,16 @@ publish = false
 
 [dependencies]
 axum = { version = "0.8.9", features = ["ws"] }
+claude = { path = "../../crates/claude" }
 dirs = "7.0.0"
+engine = { path = "../../crates/engine" }
 getrandom = "0.4.3"
 kernel = { path = "../../crates/kernel" }
 protocol = { path = "../../crates/protocol" }
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"
 subtle = "2.6.1"
-tokio = { version = "1.54.1", features = ["macros", "net", "rt-multi-thread"] }
+tokio = { version = "1.54.1", features = ["macros", "net", "rt-multi-thread", "sync"] }
 toml = "1.2.1"
 
 [dev-dependencies]

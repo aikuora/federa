@@ -97,7 +97,10 @@ mod tests {
             .output()
             .unwrap();
         assert!(init.status.success());
-        let kernel = Arc::new(Kernel::new("ada@example.com".to_owned()));
+        let kernel = Arc::new(Kernel::new(
+            "ada@example.com".to_owned(),
+            Err("no engine in this test".to_owned()),
+        ));
         for command in [
             Command::CreateOrganization {
                 folder: dir.join("acme"),

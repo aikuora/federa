@@ -12,6 +12,8 @@ engine contract and the federation repository, and never a concrete engine.
 - **asset**: Registering the managed assets of the open organization and listing them.
 - **agent-tools**: The tools agents call, each call checked against the identity of the agent that
   makes it, which the kernel gave it when the agent opened.
+- **sign-in**: Telling clients whether the agents' engine is ready, starting its sign-in for the
+  person, and announcing when that changes.
 
 ### Out of scope
 
@@ -26,8 +28,9 @@ engine contract and the federation repository, and never a concrete engine.
 
 ## Public interface
 
-- `Kernel`: built with the person who uses the runtime; answers each `protocol::Command` with its
-  `protocol::Outcome`, admits agents and runs the tools they call.
+- `Kernel`: built with the person who uses the runtime and the engine its agents run on, or why
+  there is none; answers each `protocol::Command` with its `protocol::Outcome`, announces
+  `protocol::Event`s to whoever subscribed, admits agents and runs the tools they call.
 - `AgentIdentity`, `Role` and `AgentToken`: who an agent is, and the token it calls tools with.
 - `Tool` and `ToolError`: a tool as an MCP server describes it, and why a call failed.
 
@@ -38,3 +41,5 @@ engine contract and the federation repository, and never a concrete engine.
 - The tests in `tests/` drive the kernel only through its public interface, `Kernel::handle` and the
   agent tools, on federation repositories and asset repositories in temporary folders, and need the
   `git` binary.
+- The tests of the sign-in, in `tests/sign_in.rs`, run against engines defined there, on Tokio's
+  paused clock, so the minutes a sign-in may take pass at once.

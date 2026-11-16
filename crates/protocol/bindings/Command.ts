@@ -7,5 +7,7 @@ import type { AssetName } from "./AssetName.ts";
  * federation repository of a new organization and opens it, and `register_asset` takes the folder
  * that holds the asset's `.federa/`. `send_message` is answered with `message_accepted` and the
  * turn of the peer's answer, which then arrives as the `peer_*` events of that turn.
+ * `start_sign_in` starts the engine's official sign-in and answers `signing_in`, or `unavailable`
+ * with the reason; every later change of the status arrives as `sign_in_changed`.
  */
-export type Command = { "command": "create_organization", folder: string, name: string, } | { "command": "open_organization", folder: string, } | { "command": "register_asset", folder: string, } | { "command": "list_assets" } | { "command": "send_message", asset: AssetName, text: string, } | { "command": "load_conversation", asset: AssetName, };
+export type Command = { "command": "create_organization", folder: string, name: string, } | { "command": "open_organization", folder: string, } | { "command": "register_asset", folder: string, } | { "command": "list_assets" } | { "command": "send_message", asset: AssetName, text: string, } | { "command": "load_conversation", asset: AssetName, } | { "command": "sign_in_status" } | { "command": "start_sign_in" };

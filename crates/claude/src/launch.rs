@@ -1,3 +1,4 @@
+use std::ffi::OsString;
 use std::path::Path;
 use std::process::Stdio;
 
@@ -28,12 +29,7 @@ pub(crate) fn command(binary: &Path, config: &Path, spec: &AgentSpec) -> Command
         .arg(format!("--mcp-config={}", mcp_config(&spec.mcp)))
         .current_dir(&spec.workdir)
         .env_clear()
-        .envs(
-            INHERITED
-                .iter()
-                .filter_map(|name| Some((name, std::env::var_os(name)?))),
-        )
-        .env("CLAUDE_CONFIG_DIR", config)
+        .envs(environment(config))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
@@ -62,6 +58,14 @@ const TOOLS: [&str; 3] = ["Read", "Glob", "Grep"];
 const INHERITED: [&str; 8] = [
     "HOME", "PATH", "USER", "LOGNAME", "TMPDIR", "LANG", "LC_ALL", "LC_CTYPE",
 ];
+
+/// The whole environment an agent's binary runs with, on `config`, once the runtime's is cleared.
+pub(crate) fn environment(config: &Path) -> impl Iterator<Item = (OsString, OsString)> {
+    let inherited = INHERITED
+        .iter()
+        .filter_map(|name| Some((OsString::from(name), std::env::var_os(name)?)));
+    inherited.chain([("CLAUDE_CONFIG_DIR".into(), config.as_os_str().to_owned())])
+}
 
 // The sandbox refuses to start rather than run unsandboxed, and no command may leave it. No memory
 // carries over from one agent to the next.

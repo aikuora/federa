@@ -4,12 +4,13 @@
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
+use std::time::{Duration, Instant};
 
 use axum::http::{HeaderMap, StatusCode};
 use axum::response::{IntoResponse, Response};
 use axum::{Json, Router, routing::post};
 use claude::Claude;
-use engine::{Agent, AgentSpec, Engine, Event, Failure, McpServer};
+use engine::{Agent, AgentSpec, Engine, Event, Failure, McpServer, SignIn};
 use serde_json::{Value, json};
 use tempfile::TempDir;
 
@@ -92,6 +93,20 @@ async fn tells_to_sign_in_until_its_folder_is_signed_in() {
         [Event::Text("ready?".into())]
     );
     agent.close().await;
+}
+
+#[test]
+fn signs_its_folder_in_through_the_official_sign_in() {
+    let folder = TempDir::new().unwrap();
+    let claude = claude(&folder, false);
+    assert_eq!(claude.sign_in_status().unwrap(), SignIn::SignedOut);
+    claude.start_sign_in().unwrap();
+    let deadline = Instant::now() + Duration::from_secs(10);
+    while claude.sign_in_status().unwrap() != SignIn::SignedIn {
+        assert!(Instant::now() < deadline, "the sign-in never completed");
+        std::thread::sleep(Duration::from_millis(50));
+    }
+    claude.stop_sign_in();
 }
 
 const TOKEN: &str = "agent-token";

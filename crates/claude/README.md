@@ -29,7 +29,8 @@ each person uses their own subscription through the provider's own sign-in.
 ## Public interface
 
 - `Claude`: the `engine::Engine` for the official binary, built from the binary's path and the
-  configuration folder its agents run on.
+  configuration folder its agents run on, and checks and starts the official sign-in on that
+  folder.
 - `fake/claude`: a fake `claude` for the tests of any unit; how it plays is under Testing.
 
 ## Development
@@ -38,7 +39,7 @@ each person uses their own subscription through the provider's own sign-in.
 
 - `cargo test -p claude` runs without network and without the real `claude`. It replays the
   recordings in `recordings/`, runs the fake `claude`, and runs shell stand-ins for the cases the
-  fake does not play, such as an old or a dying binary.
+  fake does not play, such as an old or a dying binary, or a sign-in that ends late or never.
 - The fake is `fake/claude`, the only executable in its folder: a test of any unit runs it by that
   path, or puts the folder first on `PATH` where `claude` is looked up. It needs `node` and an
   absolute `CLAUDE_CONFIG_DIR`. `claude auth login` signs that folder in with no browser, and until
@@ -66,3 +67,6 @@ each person uses their own subscription through the provider's own sign-in.
 - The binary still binds a socket for messages from the person's other sessions, since only bare
   mode, which takes no subscription, does not; the settings drop every message that arrives on it.
 - The binary's sandbox confines its shell commands; its file tools follow its permission rules.
+- `claude auth status` runs with the agents' environment, so a credential only the runtime has,
+  such as `ANTHROPIC_API_KEY`, never reports the folder signed in. `claude auth login` runs with the
+  runtime's whole environment, which the browser needs to open.

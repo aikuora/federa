@@ -11,13 +11,17 @@ mod version;
 
 use std::io;
 use std::path::PathBuf;
+use std::process::Child;
+use std::sync::{Mutex, PoisonError};
 
-use engine::{Agent, AgentSpec, Engine, Error};
+use engine::{Agent, AgentSpec, Engine, Error, SignIn};
 use tokio::sync::mpsc;
 
 pub struct Claude {
     binary: PathBuf,
     config: PathBuf,
+    /// The official sign-in while it runs; at most one at a time.
+    login: Mutex<Option<Child>>,
 }
 
 impl Claude {
@@ -47,7 +51,11 @@ impl Claude {
         // there. `binary` stays as given, so a bare name is looked up on `PATH`.
         let config = std::path::absolute(config)?;
         config::prepare(&config)?;
-        Ok(Self { binary, config })
+        Ok(Self {
+            binary,
+            config,
+            login: Mutex::new(None),
+        })
     }
 }
 
@@ -59,5 +67,30 @@ impl Engine for Claude {
         let (events, receiver) = mpsc::channel(64);
         let task = tokio::spawn(session::run(child, messages, events));
         Ok(Agent::new(input, receiver, task))
+    }
+
+    fn sign_in_status(&self) -> Result<SignIn, Error> {
+        Ok(sign_in::status(&self.binary, &self.config)?)
+    }
+
+    fn start_sign_in(&self) -> Result<(), Error> {
+        let mut login = self.login.lock().unwrap_or_else(PoisonError::into_inner);
+        if let Some(previous) = login.take() {
+            sign_in::end(previous);
+        }
+        *login = Some(sign_in::login(&self.binary, &self.config)?);
+        Ok(())
+    }
+
+    fn stop_sign_in(&self) {
+        let login = self
+            .login
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .take();
+        if let Some(login) = login {
+            // On a thread of its own, so whoever stops it does not wait out its grace.
+            std::thread::spawn(move || sign_in::finish(login));
+        }
     }
 }

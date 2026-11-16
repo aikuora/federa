@@ -55,7 +55,10 @@ async fn creates_an_organization_and_registers_an_asset() {
     let repo = platform(dir.path());
     let billing = repo.join("services/billing");
     let acme = dir.path().join("acme");
-    let kernel = Kernel::new("ana@acme.dev".to_owned());
+    let kernel = Kernel::new(
+        "ana@acme.dev".to_owned(),
+        Err("no engine in this test".to_owned()),
+    );
 
     let none = failed(&kernel, Command::ListAssets).await;
     assert_eq!(none.code, FailureCode::NoOrganization);
@@ -105,7 +108,10 @@ async fn creates_an_organization_and_registers_an_asset() {
         FailureCode::AlreadyExists
     );
 
-    let kernel = Kernel::new("ana@acme.dev".to_owned());
+    let kernel = Kernel::new(
+        "ana@acme.dev".to_owned(),
+        Err("no engine in this test".to_owned()),
+    );
     assert_eq!(
         done(
             &kernel,
@@ -135,7 +141,10 @@ async fn creates_an_organization_and_registers_an_asset() {
 #[tokio::test]
 async fn refuses_an_organization_without_a_name() {
     let dir = tempfile::tempdir().unwrap();
-    let kernel = Kernel::new("ana@acme.dev".to_owned());
+    let kernel = Kernel::new(
+        "ana@acme.dev".to_owned(),
+        Err("no engine in this test".to_owned()),
+    );
     let failure = failed(
         &kernel,
         Command::CreateOrganization {
@@ -159,7 +168,10 @@ async fn refuses_an_asset_outside_a_git_repository() {
     )
     .unwrap();
     fs::write(billing.join("knowledge.md"), "").unwrap();
-    let kernel = Kernel::new("ana@acme.dev".to_owned());
+    let kernel = Kernel::new(
+        "ana@acme.dev".to_owned(),
+        Err("no engine in this test".to_owned()),
+    );
     done(
         &kernel,
         Command::CreateOrganization {
@@ -192,7 +204,10 @@ fn peer_on(asset: &str) -> AgentIdentity {
 async fn an_agent_reads_the_knowledge_of_its_own_asset() {
     let dir = tempfile::tempdir().unwrap();
     let repo = platform(dir.path());
-    let kernel = Kernel::new("ana@acme.dev".to_owned());
+    let kernel = Kernel::new(
+        "ana@acme.dev".to_owned(),
+        Err("no engine in this test".to_owned()),
+    );
     let early = kernel.admit(peer_on("billing"));
     assert_eq!(
         kernel
@@ -246,7 +261,10 @@ async fn an_agent_reads_the_knowledge_of_its_own_asset() {
 
 #[tokio::test]
 async fn refuses_a_token_it_did_not_admit() {
-    let kernel = Kernel::new("ana@acme.dev".to_owned());
+    let kernel = Kernel::new(
+        "ana@acme.dev".to_owned(),
+        Err("no engine in this test".to_owned()),
+    );
     let token = kernel.admit(peer_on("billing"));
     let guess = "0".repeat(token.as_str().len());
     assert_eq!(kernel.tools(&guess), Err(ToolError::Unauthorized));
@@ -261,7 +279,10 @@ async fn refuses_a_token_it_did_not_admit() {
 async fn opening_an_organization_dismisses_every_agent() {
     let dir = tempfile::tempdir().unwrap();
     let acme = dir.path().join("acme");
-    let kernel = Kernel::new("ana@acme.dev".to_owned());
+    let kernel = Kernel::new(
+        "ana@acme.dev".to_owned(),
+        Err("no engine in this test".to_owned()),
+    );
     let create = Command::CreateOrganization {
         folder: acme.clone(),
         name: "Acme".to_owned(),

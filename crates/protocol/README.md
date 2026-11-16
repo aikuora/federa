@@ -29,6 +29,8 @@ on this crate, or on the TypeScript types generated from it, and on nothing else
 - `Command`, `Reply`, `Event`, `Outcome` and `Failure`: what a client asks, what it gets back and why
   something failed.
 - `Organization`, `Asset`, `Conversation` and the types they hold: the domain as a client sees it.
+- `SignInStatus`: whether the agents' engine is ready, as `sign_in_status` and `start_sign_in`
+  answer it and `sign_in_changed` announces it.
 - The private pnpm package `protocol`: each type above as `protocol/<Type>`, generated in
   `bindings/`, and `VERSION` as `protocol/version`.
 

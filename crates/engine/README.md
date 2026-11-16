@@ -10,6 +10,8 @@ engine runs them.
 
 - **agent-contract**: Opening an agent with its instructions, its folder and its MCP servers, sending
   it messages, receiving its events and closing it.
+- **sign-in**: Checking whether the person is signed in to an engine's provider, and starting the
+  provider's official sign-in.
 
 ### Out of scope
 
@@ -23,11 +25,13 @@ engine runs them.
 
 ## Public interface
 
-- `Engine`: what an engine adapter implements, opening agents.
+- `Engine`: what an engine adapter implements, opening agents, and checking, starting and ending
+  the provider's sign-in.
+- `SignIn`: whether the person is signed in to the provider.
 - `Agent`: a running agent, to send it messages, read its events and close it. Adapters build it.
 - `AgentSpec` and `McpServer`: what an agent is opened with.
 - `Event` and `Failure`: what an agent reports while it works.
-- `Error`: why an engine could not open an agent or take a message.
+- `Error`: why an engine could not open an agent, take a message or run its sign-in.
 
 ## Development
 
