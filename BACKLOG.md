@@ -45,21 +45,6 @@ decisiones de dirección están en `AGENTS.md`.
   del activo; el botón "Conectar con Claude" cuando el runtime no tiene la sesión iniciada. Out of
   scope: empaquetar el runtime en el instalador; las demás superficies. Done when: el Done when del
   goal, hecho a mano por la persona. Extends: desktop. After: runtime-server, claude-sign-in.
-- **fake-claude**: short. Outcome: ningún test del proyecto necesita el `claude` real ni la
-  suscripción de la persona. In scope: un `claude` falso en la unidad `claude`, como soporte de
-  tests, construido desde las grabaciones reales: responde `--version`, `auth status` y `auth
-  login`, que inicia la sesión de su carpeta de configuración sin navegador, y habla el mismo
-  stream-json que las grabaciones con un guion por escenario, como "cuando le preguntan por el
-  activo, llama a la herramienta de conocimiento por MCP con el token del agente y responde con lo
-  que devolvió"; los tests del crate `claude` corren contra él; una línea en `AGENTS.md`, Motores de
-  agentes: los tests corren contra un binario falso construido desde las grabaciones reales, así no
-  necesitan el binario del proveedor ni la suscripción de la persona, y el real se usa solo para
-  grabar. Out of scope: reemplazar el script de grabación, que sigue siendo la única forma de grabar
-  con el `claude` real cuando sube la versión mínima. Done when: los tests del crate `claude` pasan
-  sin el binario real en el `PATH`, incluido un escenario que llama a una herramienta de un servidor
-  MCP de prueba. Extends: claude. Decidido por la persona: el binario real se usa solo para grabar y
-  en el recorrido final del goal; el test en vivo existente queda como verificación manual opcional,
-  fuera de la suite. Surgió en el change `claude-sign-in`.
 
 ### coordinated-goal
 

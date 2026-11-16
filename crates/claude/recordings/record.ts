@@ -1,5 +1,6 @@
-// Records the stdout of the minimum version of `claude` for the offline tests of this crate. Only
-// the person runs it, on their own subscription, once per rise of the minimum:
+// Records the stdout of the minimum version of `claude` for the offline tests of this crate and for
+// the fake `claude` in `../fake`, which every test of the project runs. Only the person runs it, on
+// their own subscription, once per rise of the minimum:
 //
 //   node crates/claude/recordings/record.ts
 //
@@ -41,6 +42,8 @@ type Scenario = {
   signedOut?: boolean;
 };
 
+// The fake swaps the answer of `open` and the server, tool and text of `mcp-tool` for its own, in
+// `RECORDED` of `../fake/claude.ts`; keep both alike.
 const SCENARIOS: Scenario[] = [
   { name: 'open', messages: ['Reply with the single word: ready'] },
   {

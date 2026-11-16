@@ -1,5 +1,5 @@
-//! The engine against stand-ins for the binary: shell scripts that print a version and answer
-//! each stdin line with one turn of stream-json.
+//! The engine against stand-ins for the binary, for the cases the fake `claude` does not play:
+//! shell scripts that print a version and answer each stdin line with one turn of stream-json.
 #![cfg(unix)]
 
 use std::os::unix::fs::PermissionsExt;
@@ -23,11 +23,10 @@ echo '{"type":"result","subtype":"success","is_error":false}'"#;
 const CURRENT: &str = "2.1.311 (Claude Code)";
 
 // Every stand-in, as its name, the version it prints and what it does with stdin.
-const STAND_INS: [(&str, &str, &str); 6] = [
+const STAND_INS: [(&str, &str, &str); 5] = [
     ("old", "2.1.310 (Claude Code)", TURNS),
     ("newer", "2.2.0 (Claude Code)", TURNS),
     ("odd", "usage: claude", TURNS),
-    ("current", CURRENT, TURNS),
     (
         "dying",
         CURRENT,
@@ -106,26 +105,6 @@ async fn reports_a_binary_that_ends_on_its_own_with_what_it_said() {
     assert!(reason.contains("session expired"), "{reason}");
     assert_eq!(agent.next().await, None);
     assert!(matches!(agent.send("two".into()).await, Err(Error::Closed)));
-}
-
-#[tokio::test]
-async fn converses_turn_by_turn_and_closes() {
-    let claude = Claude::new(stand_in("current"), config()).unwrap();
-    let mut agent = claude.open(spec()).unwrap();
-    for message in ["one", "two"] {
-        agent.send(message.into()).await.unwrap();
-        let mut turn = Vec::new();
-        while let Some(event) = agent.next().await {
-            let ended = event == Event::TurnEnded;
-            turn.push(event);
-            if ended {
-                break;
-            }
-        }
-        assert_eq!(turn.last(), Some(&Event::TurnEnded), "{turn:?}");
-        assert!(turn.contains(&Event::Text("ok".into())), "{turn:?}");
-    }
-    agent.close().await;
 }
 
 #[tokio::test]

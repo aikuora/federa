@@ -195,8 +195,10 @@ flowchart LR
   `codex app-server`, y el resto con un ciclo de agente propio de la app sobre API keys.
 - Cada adaptador exige una versión mínima del binario de su proveedor y acepta las más nuevas sin
   aviso, porque los cambios observados entre versiones solo agregan campos. Lee solo los campos que
-  usa, ignora el resto y falla con un error claro cuando falta uno que necesita. Sus tests sin red
-  usan grabaciones reales de la versión mínima, que se graban de nuevo al subirla.
+  usa, ignora el resto y falla con un error claro cuando falta uno que necesita.
+- Los tests corren contra un binario falso construido desde grabaciones reales de la versión mínima,
+  que se graban de nuevo al subirla, así no necesitan el binario del proveedor ni la suscripción de
+  la persona; el real se usa solo para grabar.
 - Cada persona usa su propia suscripción o su API key. La app nunca ofrece un login propio de un
   proveedor ni lee, guarda o intermedia credenciales: la sesión se inicia en el flujo oficial de
   cada proveedor, porque sus términos lo exigen para usar las suscripciones.

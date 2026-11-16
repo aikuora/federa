@@ -1,0 +1,5 @@
+#!/bin/sh
+# The fake `claude`, the only executable in its folder, so a test can put the folder first on PATH.
+# It runs from its own folder because an agent's workdir is often outside the repository, where
+# proto finds no `.prototools` and would pick another node, or none at all.
+cd "$(dirname "$0")" && exec node claude.ts "$@"
