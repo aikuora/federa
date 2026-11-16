@@ -51,6 +51,14 @@ impl DataFolder {
         self.root.join("claude")
     }
 
+    /// Where the person's conversations with their peers are kept, private to this runtime:
+    /// created if missing, readable and writable only by its owner.
+    pub(crate) fn conversations(&self) -> io::Result<PathBuf> {
+        let folder = self.root.join("conversations");
+        owner_only_folder(&folder)?;
+        Ok(folder)
+    }
+
     /// Writes where clients find this runtime, readable and writable only by its owner.
     pub(crate) fn publish(&self, port: u16, token: &Token) -> io::Result<()> {
         let text = toml::to_string(&Published {
@@ -86,4 +94,41 @@ fn owner_only(path: &Path) -> io::Result<fs::File> {
         .write(true)
         .create_new(true)
         .open(path)
+}
+
+// A folder of an earlier run keeps no permissions wider than these either.
+#[cfg(unix)]
+fn owner_only_folder(path: &Path) -> io::Result<()> {
+    use std::os::unix::fs::{DirBuilderExt, PermissionsExt};
+    fs::DirBuilder::new()
+        .recursive(true)
+        .mode(0o700)
+        .create(path)?;
+    fs::set_permissions(path, fs::Permissions::from_mode(0o700))
+}
+
+#[cfg(not(unix))]
+fn owner_only_folder(path: &Path) -> io::Result<()> {
+    fs::create_dir_all(path)
+}
+
+#[cfg(all(test, unix))]
+mod tests {
+    use std::os::unix::fs::PermissionsExt;
+
+    use super::*;
+
+    #[test]
+    fn keeps_the_conversations_readable_only_by_their_owner() {
+        let dir = tempfile::tempdir().unwrap();
+        let data = DataFolder {
+            root: dir.path().to_owned(),
+        };
+        let mode = |folder: &Path| fs::metadata(folder).unwrap().permissions().mode() & 0o777;
+        let folder = data.conversations().unwrap();
+        assert_eq!(mode(&folder), 0o700);
+
+        fs::set_permissions(&folder, fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(mode(&data.conversations().unwrap()), 0o700);
+    }
 }

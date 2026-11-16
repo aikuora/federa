@@ -8,8 +8,8 @@ engine runs them.
 
 ### Responsibilities
 
-- **agent-contract**: Opening an agent with its instructions, its folder and its MCP servers, sending
-  it messages, receiving its events and closing it.
+- **agent-contract**: Opening an agent with its instructions, its folder and its MCP servers, or
+  continuing its earlier session, sending it messages, receiving its events and closing it.
 - **sign-in**: Checking whether the person is signed in to an engine's provider, and starting the
   provider's official sign-in.
 

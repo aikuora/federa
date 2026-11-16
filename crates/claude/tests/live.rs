@@ -44,6 +44,7 @@ async fn converses_two_turns_with_the_installed_binary() {
         instructions: "You are a test agent. Answer as briefly as you are asked to.".into(),
         workdir: workdir.clone(),
         mcp: vec![],
+        resume: None,
     };
     let mut agent = claude.open(spec).unwrap();
     turn(&mut agent, "Remember the word orange. Reply only: ok").await;

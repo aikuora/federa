@@ -13,7 +13,7 @@ machine or on a server.
 - **client-server**: Serving the protocol to clients over WebSocket, only on `127.0.0.1` and only to
   a client that presents a token only the person can read.
 - **data-folder**: The runtime's own folder on the machine: where clients find a running runtime,
-  and the configuration of Claude the app's agents run with.
+  the configuration of Claude the app's agents run with, and the person's conversations.
 - **agent-endpoint**: Serving the kernel's tools to agents over MCP on HTTP, only to an agent that
   presents its own token.
 
@@ -60,5 +60,8 @@ machine or on a server.
   configuration of their own (`GIT_CONFIG_GLOBAL`), read its `runtime.toml` and connect as a
   client. They put the fake `claude` of `crates/claude/fake` first on `PATH`, so the real one never
   runs, and need the `git` and `node` binaries and a shell, so they run only on Unix.
-- The tests in `src/server.rs` drive the served routes in-process, admitting agents in the kernel
-  directly, which a test outside the process cannot do. They need the `git` binary too.
+  A test that talks with a peer signs the agents' configuration folder in with the fake's `claude
+  auth login` first, and one that restarts the runtime starts another on the same data folder.
+- The tests in `src/server.rs` drive the served routes in-process, with an engine defined there that
+  keeps the token the kernel opens a peer with, which a test outside the process cannot read. They
+  need the `git` binary too.

@@ -14,16 +14,6 @@ persona y herramientas MCP) y saca el riesgo técnico más grande: manejar el bi
 `claude` desde Rust. Trae además la base del proyecto. Surgió en el capture `foundation`; sus
 decisiones de dirección están en `AGENTS.md`.
 
-- **peer-on-asset**: full. Outcome: la persona conversa con su peer sobre un activo y la
-  conversación queda guardada. In scope: el kernel abre el peer en el motor de Claude, con su rol y
-  conectado a las herramientas MCP con el servidor y el token propio que le da al abrirlo, y
-  responde a los comandos de conversación del protocolo; si el sandbox de `claude` necesita una
-  regla para llegar al runtime, agrega solo esa; las conversaciones son privadas y se guardan en la
-  carpeta de datos del runtime de la persona, pegadas al activo. Out of scope: decisiones que pasan
-  al repo de federación; otros roles de agente. Done when: un test sin red, contra el `claude`
-  falso, pregunta qué hace un activo de prueba y la respuesta usa su `.federa/knowledge.md` a través
-  de la herramienta MCP; reiniciar el runtime y traer la conversación la devuelve completa. Extends:
-  kernel. After: claude-engine, kernel-tools, claude-sign-in, fake-claude.
 - **desktop-asset-view**: full. Outcome: la persona hace el recorrido del goal desde la app. In
   scope: `apps/desktop` con Tauri 2, React, TypeScript y shadcn, módulos por funcionalidad y los
   tipos del protocolo generados; arranca el runtime si no hay uno corriendo y se conecta con su

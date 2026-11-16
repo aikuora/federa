@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::{fs, path::Path};
 
 use federation::Federation;
 use protocol::{Failure, FailureCode, Organization};
@@ -18,6 +18,14 @@ pub(crate) fn create(folder: &Path, name: &str) -> Result<Federation, Failure> {
 
 pub(crate) fn open(folder: &Path) -> Result<Federation, Failure> {
     Federation::open(folder).map_err(failure::from_federation)
+}
+
+/// Whether both are the same organization, its folder spelled either way.
+pub(crate) fn same(one: &Federation, other: &Federation) -> bool {
+    match (fs::canonicalize(one.root()), fs::canonicalize(other.root())) {
+        (Ok(one), Ok(other)) => one == other,
+        _ => false,
+    }
 }
 
 /// The organization as a client sees it.

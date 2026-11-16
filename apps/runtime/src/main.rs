@@ -48,5 +48,11 @@ async fn run() -> io::Result<()> {
     let engine = claude::Claude::new("claude".into(), data.claude_config())
         .map(|claude| Arc::new(claude) as Arc<dyn engine::Engine>)
         .map_err(|e| e.to_string());
-    server::serve(listener, token, Arc::new(Kernel::new(person, engine))).await
+    let tools = format!("http://{}/mcp", listener.local_addr()?);
+    let conversations = data.conversations().map_err(|e| {
+        let message = format!("could not prepare the conversations folder: {e}");
+        io::Error::new(e.kind(), message)
+    })?;
+    let kernel = Kernel::new(person, engine, conversations, tools);
+    server::serve(listener, token, Arc::new(kernel)).await
 }

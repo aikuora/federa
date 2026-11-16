@@ -22,6 +22,27 @@ pub(crate) fn from_federation(error: federation::Error) -> Failure {
     }
 }
 
+/// What a client is told when a peer's turn fails in its engine.
+pub(crate) fn from_engine(failure: engine::Failure) -> Failure {
+    use engine::Failure::*;
+    let code = match &failure {
+        NotSignedIn { .. } => FailureCode::NotSignedIn,
+        Unreadable(_) | Engine(_) => FailureCode::Internal,
+    };
+    Failure {
+        code,
+        message: failure.to_string(),
+    }
+}
+
+/// What a client is told when the engine cannot open a peer or take a message.
+pub(crate) fn from_engine_error(error: engine::Error) -> Failure {
+    Failure {
+        code: FailureCode::Internal,
+        message: error.to_string(),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use std::io;

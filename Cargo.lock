@@ -397,10 +397,12 @@ dependencies = [
  "federation",
  "getrandom 0.4.3",
  "protocol",
+ "serde",
  "serde_json",
  "tempfile",
  "thiserror",
  "tokio",
+ "toml",
 ]
 
 [[package]]
@@ -578,7 +580,6 @@ dependencies = [
  "claude",
  "dirs",
  "engine",
- "federation",
  "futures-util",
  "getrandom 0.4.3",
  "kernel",

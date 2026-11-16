@@ -41,6 +41,7 @@ fn spec(folder: &TempDir, instructions: &str, mcp: Vec<McpServer>) -> AgentSpec 
         instructions: instructions.into(),
         workdir: folder.path().to_owned(),
         mcp,
+        resume: None,
     }
 }
 
@@ -71,6 +72,31 @@ async fn answers_each_turn_with_the_message_it_was_sent() {
         );
     }
     agent.close().await;
+}
+
+// The session of an agent's first turn, which the fake reports as it starts.
+async fn session(agent: &mut Agent) -> String {
+    agent.send("hello".into()).await.unwrap();
+    match agent.next().await {
+        Some(Event::Started { session }) => session,
+        other => panic!("{other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn continues_the_session_it_resumes() {
+    let folder = TempDir::new().unwrap();
+    let claude = claude(&folder, true);
+    let mut first = claude.open(spec(&folder, "", vec![])).unwrap();
+    let started = session(&mut first).await;
+    first.close().await;
+    let resumed = AgentSpec {
+        resume: Some(started.clone()),
+        ..spec(&folder, "", vec![])
+    };
+    let mut again = claude.open(resumed).unwrap();
+    assert_eq!(session(&mut again).await, started);
+    again.close().await;
 }
 
 #[tokio::test]

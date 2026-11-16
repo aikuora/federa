@@ -65,7 +65,12 @@ impl Engine for Gone {
 }
 
 fn kernel(engine: Result<Arc<dyn Engine>, String>) -> Kernel {
-    Kernel::new("ana@acme.dev".to_owned(), engine)
+    Kernel::new(
+        "ana@acme.dev".to_owned(),
+        engine,
+        "conversations".into(),
+        "http://127.0.0.1/mcp".to_owned(),
+    )
 }
 
 async fn status(kernel: &Kernel, command: Command) -> SignInStatus {

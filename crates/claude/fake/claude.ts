@@ -128,7 +128,8 @@ async function call(tool: Tool): Promise<string> {
 }
 
 async function converse(args: string[]): Promise<void> {
-  const session = randomUUID();
+  // A resumed session keeps its id, as the real binary does without `--fork-session`.
+  const session = value(args, '--resume') ?? randomUUID();
   const instructions = value(args, '--append-system-prompt') ?? '';
   let offered: Promise<Tool[]> | undefined;
   for await (const line of createInterface({ input: process.stdin })) {

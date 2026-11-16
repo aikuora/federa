@@ -47,7 +47,8 @@ each person uses their own subscription through the provider's own sign-in.
   itself, unless the message or the `--append-system-prompt` instructions name a tool that a server
   of `--mcp-config` lists: then it calls that tool over HTTP, with the headers' `${VAR}` expanded
   from its environment, and answers with the tool's text. A server that refuses it ends the binary
-  with the reason on stderr.
+  with the reason on stderr. `--resume` continues the session it names, which keeps its id; the fake
+  remembers nothing of what was said in it.
 - The recordings are the stdout of the minimum version in four scenarios: opening a session, two
   turns, one MCP tool call and a session not signed in. Only the person makes them again, with
   `node crates/claude/recordings/record.ts`. It installs that version into `target/`, and signs in

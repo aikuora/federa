@@ -1,7 +1,7 @@
 use federation::Federation;
 use serde_json::{Value, json};
 
-use crate::{AgentIdentity, Role};
+use crate::agent::{AgentIdentity, Role};
 
 mod knowledge;
 

@@ -12,8 +12,8 @@ use std::{
 
 use futures_util::{SinkExt, StreamExt};
 use protocol::{
-    ClientFrame, Command as ProtocolCommand, Event, Hello, Organization, Outcome, Reply, RequestId,
-    RuntimeFrame, SignInStatus, VERSION,
+    AssetName, Author, ClientFrame, Command as ProtocolCommand, Event, Hello, Organization,
+    Outcome, Reply, RequestId, RuntimeFrame, SignInStatus, VERSION,
 };
 use serde::Deserialize;
 use tempfile::TempDir;
@@ -99,9 +99,19 @@ fn start_without_claude() -> Runtime {
     launch(data, command)
 }
 
-fn launch(data: TempDir, mut command: Command) -> Runtime {
+fn launch(data: TempDir, command: Command) -> Runtime {
+    let (child, published) = run(data.path(), command);
+    Runtime {
+        child,
+        published,
+        data,
+    }
+}
+
+/// Runs `command`, the runtime on `dir`, until it publishes where to connect.
+fn run(dir: &Path, mut command: Command) -> (Child, Published) {
     let mut child = command.stderr(Stdio::null()).spawn().unwrap();
-    let file = data.path().join("data/runtime.toml");
+    let file = dir.join("data/runtime.toml");
     let deadline = Instant::now() + Duration::from_secs(10);
     while !file.exists() {
         assert!(child.try_wait().unwrap().is_none(), "the runtime exited");
@@ -109,10 +119,17 @@ fn launch(data: TempDir, mut command: Command) -> Runtime {
         thread::sleep(Duration::from_millis(20));
     }
     let published = toml::from_str(&fs::read_to_string(&file).unwrap()).unwrap();
-    Runtime {
-        child,
-        published,
-        data,
+    (child, published)
+}
+
+impl Runtime {
+    /// Stops the runtime and starts another on the same data folder, as when the person closes
+    /// the app and opens it again.
+    fn restart(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+        fs::remove_file(self.data.path().join("data/runtime.toml")).unwrap();
+        (self.child, self.published) = run(self.data.path(), command(self.data.path(), IDENTITY));
     }
 }
 
@@ -348,4 +365,138 @@ async fn without_claude_serves_organizations_and_says_why_agents_cannot_run() {
     };
     let outcome = ask(&mut socket, 2, create).await;
     assert!(matches!(outcome, Outcome::Done { .. }), "{outcome:?}");
+}
+
+const KNOWLEDGE: &str = "# billing\n\nCharges each customer once a month.\n";
+
+/// A git repository in `dir` holding the asset `billing`, with `KNOWLEDGE` in its `.federa/`.
+fn billing_repository(dir: &Path) -> PathBuf {
+    let billing = dir.join("billing");
+    let federa = billing.join(".federa");
+    fs::create_dir_all(&federa).unwrap();
+    fs::write(
+        federa.join("asset.toml"),
+        "schema = 1\nname = \"billing\"\n",
+    )
+    .unwrap();
+    fs::write(federa.join("knowledge.md"), KNOWLEDGE).unwrap();
+    // A git hook sets these for the repository it runs in, and git would init that one instead.
+    let init = Command::new("git")
+        .arg("init")
+        .arg(&billing)
+        .env_remove("GIT_DIR")
+        .env_remove("GIT_WORK_TREE")
+        .env_remove("GIT_INDEX_FILE")
+        .output()
+        .unwrap();
+    assert!(init.status.success());
+    billing
+}
+
+/// Signs the configuration folder of the runtime's agents in, through the fake's `auth login`.
+fn sign_in(runtime: &Runtime) {
+    let status = Command::new(fake_claude().join("claude"))
+        .args(["auth", "login"])
+        .env("CLAUDE_CONFIG_DIR", runtime.data.path().join("data/claude"))
+        .status()
+        .unwrap();
+    assert!(status.success());
+}
+
+fn billing() -> AssetName {
+    AssetName("billing".into())
+}
+
+/// Asks the peer of `billing` and returns its answer: the parts of its turn, joined.
+async fn answer(socket: &mut Socket, id: u32, text: &str) -> String {
+    let send = ProtocolCommand::SendMessage {
+        asset: billing(),
+        text: text.into(),
+    };
+    let Outcome::Done {
+        reply: Reply::MessageAccepted { turn },
+    } = ask(socket, id, send).await
+    else {
+        panic!("the message was not accepted");
+    };
+    let mut parts = Vec::new();
+    loop {
+        let frame = tokio::time::timeout(Duration::from_secs(20), receive(socket))
+            .await
+            .expect("the turn never ended");
+        match frame {
+            Some(RuntimeFrame::Event {
+                event: Event::PeerPart { turn: t, text, .. },
+            }) if t == turn => parts.push(text),
+            Some(RuntimeFrame::Event {
+                event: Event::PeerDone { turn: t, .. },
+            }) if t == turn => return parts.join("\n\n"),
+            frame => panic!("{frame:?}"),
+        }
+    }
+}
+
+async fn conversation(socket: &mut Socket, id: u32) -> Vec<protocol::Message> {
+    let load = ProtocolCommand::LoadConversation { asset: billing() };
+    match ask(socket, id, load).await {
+        Outcome::Done {
+            reply: Reply::Conversation { conversation },
+        } => conversation.messages,
+        outcome => panic!("{outcome:?}"),
+    }
+}
+
+/// The engine's session stored with the conversation about `billing`, the only one there is.
+fn stored_session(runtime: &Runtime) -> String {
+    let conversations = runtime.data.path().join("data/conversations");
+    let organizations: Vec<_> = fs::read_dir(conversations).unwrap().collect();
+    let [organization] = &organizations[..] else {
+        panic!("{organizations:?}");
+    };
+    let file = organization.as_ref().unwrap().path().join("billing.toml");
+    let stored: toml::Table = toml::from_str(&fs::read_to_string(file).unwrap()).unwrap();
+    stored["session"].as_str().unwrap().to_owned()
+}
+
+#[tokio::test]
+async fn the_peer_answers_with_its_assets_knowledge_and_keeps_the_conversation_across_restarts() {
+    let mut runtime = start();
+    sign_in(&runtime);
+    let acme = runtime.data.path().join("acme");
+    let billing = billing_repository(runtime.data.path());
+    let mut socket = greeted(&runtime).await;
+    let create = ProtocolCommand::CreateOrganization {
+        folder: acme.clone(),
+        name: "Acme".into(),
+    };
+    let register = ProtocolCommand::RegisterAsset { folder: billing };
+    for (id, command) in [(1, create), (2, register)] {
+        let outcome = ask(&mut socket, id, command).await;
+        assert!(matches!(outcome, Outcome::Done { .. }), "{outcome:?}");
+    }
+
+    // The fake calls the tool its instructions name, and answers with what the tool returned.
+    let question = "What does billing do?";
+    assert_eq!(answer(&mut socket, 3, question).await, KNOWLEDGE);
+    let session = stored_session(&runtime);
+
+    runtime.restart();
+    let mut socket = greeted(&runtime).await;
+    let open = ProtocolCommand::OpenOrganization { folder: acme };
+    let outcome = ask(&mut socket, 1, open).await;
+    assert!(matches!(outcome, Outcome::Done { .. }), "{outcome:?}");
+    let whole = vec![
+        protocol::Message {
+            author: Author::Person,
+            text: question.into(),
+        },
+        protocol::Message {
+            author: Author::Peer,
+            text: KNOWLEDGE.into(),
+        },
+    ];
+    assert_eq!(conversation(&mut socket, 2).await, whole);
+    assert_eq!(answer(&mut socket, 3, "And what else?").await, KNOWLEDGE);
+    assert_eq!(stored_session(&runtime), session);
+    assert_eq!(conversation(&mut socket, 4).await.len(), 4);
 }

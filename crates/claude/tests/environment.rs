@@ -34,6 +34,7 @@ echo '{"type":"result","subtype":"success","is_error":false}'
         instructions: "You are a test agent.".into(),
         workdir: folder.clone(),
         mcp: vec![],
+        resume: None,
     };
     let mut agent = claude.open(spec).unwrap();
     agent.send("what do you see?".into()).await.unwrap();

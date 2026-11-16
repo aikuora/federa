@@ -103,6 +103,7 @@ fn spec() -> AgentSpec {
         instructions: "You are a test agent.".into(),
         workdir: std::env::temp_dir(),
         mcp: vec![],
+        resume: None,
     }
 }
 

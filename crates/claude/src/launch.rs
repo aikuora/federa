@@ -34,6 +34,9 @@ pub(crate) fn command(binary: &Path, config: &Path, spec: &AgentSpec) -> Command
         .stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .kill_on_drop(true);
+    if let Some(session) = &spec.resume {
+        command.arg(format!("--resume={session}"));
+    }
     if !spec.mcp.is_empty() {
         let tools: Vec<String> = spec
             .mcp
@@ -115,6 +118,7 @@ mod tests {
             instructions: "- You are the peer.".into(),
             workdir: PathBuf::from("/work/asset"),
             mcp,
+            resume: None,
         }
     }
 
@@ -231,6 +235,22 @@ mod tests {
         let envs: Vec<_> = command.as_std().get_envs().collect();
         let token = Some(OsStr::new("Bearer secret-two"));
         assert!(envs.contains(&(OsStr::new("MCP_AUTHORIZATION_1"), token)));
+    }
+
+    #[test]
+    fn continues_the_session_it_is_given() {
+        let new = args(&command(
+            Path::new("claude"),
+            Path::new(CONFIG),
+            &spec(vec![]),
+        ));
+        assert_eq!(value(&new, "--resume"), None);
+        let earlier = AgentSpec {
+            resume: Some("s-1".into()),
+            ..spec(vec![])
+        };
+        let args = args(&command(Path::new("claude"), Path::new(CONFIG), &earlier));
+        assert_eq!(value(&args, "--resume"), Some("s-1"));
     }
 
     #[test]

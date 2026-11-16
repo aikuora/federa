@@ -1,4 +1,4 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use federation::{CatalogEntry, Federation, Location, read_asset};
 use protocol::{Asset, AssetName, Failure, Stage};
@@ -31,6 +31,17 @@ pub(crate) fn register(
 pub(crate) fn list(federation: &Federation) -> Result<Vec<Asset>, Failure> {
     let entries = federation.assets().map_err(failure::from_federation)?;
     Ok(entries.iter().map(summary).collect())
+}
+
+/// The asset a client names, as the catalog names it.
+pub(crate) fn parse(asset: &AssetName) -> Result<federation::AssetName, Failure> {
+    federation::AssetName::parse(&asset.0).map_err(failure::from_federation)
+}
+
+/// The folder that holds the asset's `.federa/`, where its agents work.
+pub(crate) fn folder(entry: &CatalogEntry) -> PathBuf {
+    // The location is taken as a local path; a repository elsewhere comes with remote assets.
+    Path::new(&entry.location.repo).join(&entry.location.folder)
 }
 
 /// The asset as a client sees it.

@@ -7,7 +7,8 @@ import type { TurnId } from "./TurnId.ts";
 /**
  * The peer's answer, which arrives after the `message_accepted` reply that named its turn, so a
  * client always knows the turn before its parts. The `peer_part` events of a turn come in order,
- * and the turn ends with one `peer_done`, whose parts joined are the stored message, or one
- * `peer_failed`. `sign_in_changed` carries the engine's new sign-in status whenever it changes.
+ * and the turn ends with one `peer_done`, whose parts joined by a blank line (`"\n\n"`) are the
+ * stored message, or one `peer_failed`. `sign_in_changed` carries the engine's new sign-in status
+ * whenever it changes.
  */
 export type Event = { "event": "peer_part", asset: AssetName, turn: TurnId, text: string, } | { "event": "peer_done", asset: AssetName, turn: TurnId, } | { "event": "peer_failed", asset: AssetName, turn: TurnId, failure: Failure, } | { "event": "sign_in_changed", status: SignInStatus, };

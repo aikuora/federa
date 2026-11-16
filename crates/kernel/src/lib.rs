@@ -4,14 +4,17 @@
 
 mod agent;
 mod asset;
+mod conversation;
 mod failure;
 mod organization;
+mod peer;
 mod sign_in;
 mod tools;
 
 use std::{
     collections::HashMap,
-    sync::{Arc, Mutex, MutexGuard, PoisonError},
+    path::PathBuf,
+    sync::{Arc, Mutex, MutexGuard, PoisonError, atomic::AtomicU32},
 };
 
 use engine::Engine;
@@ -21,34 +24,55 @@ use protocol::{Command, Event, Failure, FailureCode, Outcome, Reply};
 use serde_json::Value;
 use tokio::sync::broadcast;
 
-pub use agent::{AgentIdentity, AgentToken, Role};
+use agent::{AgentIdentity, AgentToken};
 pub use tools::{Tool, ToolError};
 
-// One organization is open at a time, as the protocol says; opening another replaces it and
-// dismisses every agent, so a token admitted under one organization never reads another's asset of
-// the same name.
+type Agents = Arc<Mutex<HashMap<String, AgentIdentity>>>;
+
+// One organization is open at a time, as the protocol says; opening another replaces it, closes its
+// peers and dismisses every agent, so a token admitted under one organization never reads another's
+// asset of the same name. Opening the organization already open keeps it, with its peers running,
+// since a client opens it again whenever it starts.
 
 /// The core of one person's runtime.
 pub struct Kernel {
     /// Who uses this runtime. They own every asset they register while they work alone.
     person: String,
     organization: Mutex<Option<Federation>>,
-    agents: Mutex<HashMap<String, AgentIdentity>>,
+    /// Shared with the turns, which dismiss their peer's token when they close it.
+    agents: Agents,
     engine: sign_in::Slot,
     /// What the kernel announces on its own; every connected client gets it.
     events: broadcast::Sender<Event>,
+    peers: Arc<peer::Peers>,
+    conversations: Arc<conversation::Conversations>,
+    /// Where agents reach the kernel's tools over MCP.
+    tools: String,
+    /// The id of the next turn of any peer.
+    turns: AtomicU32,
 }
 
 impl Kernel {
     /// `engine` is the engine the agents run on, or why the runtime cannot run it; the kernel
-    /// still answers every command that needs no agent without one.
-    pub fn new(person: String, engine: Result<Arc<dyn Engine>, String>) -> Self {
+    /// still answers every command that needs no agent without one. `conversations` is the folder,
+    /// private to the person, where conversations are kept, and `tools` the URL of the MCP endpoint
+    /// that serves the kernel's tools to agents.
+    pub fn new(
+        person: String,
+        engine: Result<Arc<dyn Engine>, String>,
+        conversations: PathBuf,
+        tools: String,
+    ) -> Self {
         Self {
             person,
             organization: Mutex::new(None),
-            agents: Mutex::new(HashMap::new()),
+            agents: Agents::default(),
             engine: sign_in::Slot::new(engine),
             events: broadcast::channel(64).0,
+            peers: Arc::default(),
+            conversations: Arc::new(conversation::Conversations::new(conversations)),
+            tools,
+            turns: AtomicU32::new(0),
         }
     }
 
@@ -57,7 +81,7 @@ impl Kernel {
         self.events.subscribe()
     }
 
-    /// Answers one command. Conversation commands answer `Internal` until the peer exists.
+    /// Answers one command.
     pub async fn handle(&self, command: Command) -> Outcome {
         match self.answer(command).await {
             Ok(reply) => Outcome::Done { reply },
@@ -65,11 +89,14 @@ impl Kernel {
         }
     }
 
-    /// Admits an agent, and returns the token it presents on every tool call.
-    pub fn admit(&self, agent: AgentIdentity) -> AgentToken {
-        // Locked as `call` and `replace` lock, organization first, so an agent is never admitted
-        // while the organization is being replaced.
-        let _open = self.open();
+    /// Admits an agent, and returns the token it presents on every tool call. Takes the
+    /// organization locked, as `call` and `replace` lock it before the agents, so an agent is never
+    /// admitted while the organization is being replaced.
+    fn admit(
+        &self,
+        _open: &MutexGuard<'_, Option<Federation>>,
+        agent: AgentIdentity,
+    ) -> AgentToken {
         let token = AgentToken::generate();
         self.agents
             .lock()
@@ -107,6 +134,7 @@ impl Kernel {
         open: &'a mut Option<Federation>,
         federation: Federation,
     ) -> &'a Federation {
+        self.peers.close_all();
         self.agents
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
@@ -127,7 +155,13 @@ impl Kernel {
             }
             Command::OpenOrganization { folder } => {
                 let mut open = self.open();
-                let federation = self.replace(&mut open, organization::open(&folder)?);
+                let federation = organization::open(&folder)?;
+                let federation = match open.as_ref() {
+                    Some(current) if organization::same(current, &federation) => {
+                        open.insert(federation)
+                    }
+                    _ => self.replace(&mut open, federation),
+                };
                 Ok(Reply::Organization {
                     organization: organization::summary(federation),
                 })
@@ -138,10 +172,8 @@ impl Kernel {
             Command::ListAssets => Ok(Reply::Assets {
                 assets: asset::list(opened(&self.open())?)?,
             }),
-            Command::SendMessage { .. } | Command::LoadConversation { .. } => Err(Failure {
-                code: FailureCode::Internal,
-                message: "Conversations with the peer are not available yet.".to_owned(),
-            }),
+            Command::SendMessage { asset, text } => self.send(asset, text).await,
+            Command::LoadConversation { asset } => self.load(&asset),
             Command::SignInStatus => Ok(Reply::SignIn {
                 status: self.engine.status().await,
             }),
@@ -165,4 +197,9 @@ fn opened(open: &Option<Federation>) -> Result<&Federation, Failure> {
         code: FailureCode::NoOrganization,
         message: "Open an organization first.".to_owned(),
     })
+}
+
+fn dismiss(agents: &Agents, token: &AgentToken) {
+    let mut agents = agents.lock().unwrap_or_else(PoisonError::into_inner);
+    agents.remove(token.as_str());
 }

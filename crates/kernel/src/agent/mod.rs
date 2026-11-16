@@ -7,24 +7,20 @@ use federation::AssetName;
 
 /// Who an agent is: what the kernel checks on every request the agent makes.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AgentIdentity {
-    pub role: Role,
-    /// The kernel's own id for the agent's session.
-    pub session: String,
+pub(crate) struct AgentIdentity {
+    pub(crate) role: Role,
     /// The asset the agent works on.
-    pub asset: AssetName,
-    /// The goal the agent works on; a peer works on none.
-    pub goal: Option<String>,
+    pub(crate) asset: AssetName,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Role {
+pub(crate) enum Role {
     Peer,
 }
 
 /// The secret an agent presents on every tool call. It never reaches a log.
 #[derive(Clone, PartialEq, Eq)]
-pub struct AgentToken(String);
+pub(crate) struct AgentToken(String);
 
 impl AgentToken {
     /// A new random token, drawn from the operating system.
@@ -38,7 +34,7 @@ impl AgentToken {
         }))
     }
 
-    pub fn as_str(&self) -> &str {
+    pub(crate) fn as_str(&self) -> &str {
         &self.0
     }
 }

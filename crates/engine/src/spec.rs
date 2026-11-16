@@ -12,6 +12,9 @@ pub struct AgentSpec {
     pub workdir: PathBuf,
     /// The MCP servers the agent can call, each one's tools allowed without asking.
     pub mcp: Vec<McpServer>,
+    /// The engine's session to continue, as an earlier `Event::Started` reported it, so the agent
+    /// remembers what was said; a new session when `None`.
+    pub resume: Option<String>,
 }
 
 /// An MCP server reached over HTTP, with the bearer token that identifies the agent to it.

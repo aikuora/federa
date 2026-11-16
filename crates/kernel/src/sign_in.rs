@@ -35,6 +35,11 @@ impl Slot {
         }
     }
 
+    /// The engine the agents run on, or why the runtime cannot run it.
+    pub(crate) fn engine(&self) -> Result<&Arc<dyn Engine>, &str> {
+        self.engine.as_ref().map_err(String::as_str)
+    }
+
     /// The engine's sign-in status as a client sees it.
     pub(crate) async fn status(&self) -> SignInStatus {
         let engine = match &self.engine {

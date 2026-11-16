@@ -66,18 +66,50 @@ async fn upgrade(
 
 #[cfg(test)]
 mod tests {
-    use std::{fs, path::Path, process::Command as Process};
+    use std::{fs, path::Path, process::Command as Process, sync::Mutex};
 
     use axum::{body::Body, http::Request};
-    use kernel::{AgentIdentity, Role};
-    use protocol::Command;
+    use engine::{Agent, AgentSpec, Engine, Error, SignIn};
+    use protocol::{AssetName, Command};
     use serde_json::{Value, json};
+    use tokio::sync::mpsc;
     use tower::ServiceExt;
 
     use super::*;
 
-    /// The kernel with the organization `acme` open and the asset `billing` registered in it.
-    async fn kernel(dir: &Path) -> Arc<Kernel> {
+    /// An engine whose agents never answer, and which keeps the token each one was opened with.
+    #[derive(Default)]
+    struct Silent {
+        tokens: Mutex<Vec<String>>,
+    }
+
+    impl Engine for Silent {
+        fn open(&self, spec: AgentSpec) -> Result<Agent, Error> {
+            let token = spec.mcp[0].token.clone();
+            self.tokens.lock().unwrap().push(token);
+            let (input, mut messages) = mpsc::channel::<String>(1);
+            let (events, receiver) = mpsc::channel(1);
+            let task = tokio::spawn(async move {
+                let _events = events;
+                while messages.recv().await.is_some() {}
+            });
+            Ok(Agent::new(input, receiver, task))
+        }
+
+        fn sign_in_status(&self) -> Result<SignIn, Error> {
+            Ok(SignIn::SignedIn)
+        }
+
+        fn start_sign_in(&self) -> Result<(), Error> {
+            Ok(())
+        }
+
+        fn stop_sign_in(&self) {}
+    }
+
+    /// The kernel with the organization `acme` open and the asset `billing` registered in it, and
+    /// the token of the peer of `billing`, opened by a message to it.
+    async fn kernel(dir: &Path) -> (Arc<Kernel>, String) {
         let billing = dir.join("billing");
         let federa = billing.join(".federa");
         fs::create_dir_all(&federa).unwrap();
@@ -97,9 +129,12 @@ mod tests {
             .output()
             .unwrap();
         assert!(init.status.success());
+        let engine = Arc::new(Silent::default());
         let kernel = Arc::new(Kernel::new(
             "ada@example.com".to_owned(),
-            Err("no engine in this test".to_owned()),
+            Ok(engine.clone()),
+            dir.join("conversations"),
+            "http://127.0.0.1/mcp".to_owned(),
         ));
         for command in [
             Command::CreateOrganization {
@@ -107,23 +142,18 @@ mod tests {
                 name: "Acme".to_owned(),
             },
             Command::RegisterAsset { folder: billing },
+            Command::SendMessage {
+                asset: AssetName("billing".to_owned()),
+                text: "Hi".to_owned(),
+            },
         ] {
             assert!(matches!(
                 kernel.handle(command).await,
                 protocol::Outcome::Done { .. }
             ));
         }
-        kernel
-    }
-
-    fn peer(kernel: &Kernel, asset: &str) -> String {
-        let agent = AgentIdentity {
-            role: Role::Peer,
-            session: "peer-1".to_owned(),
-            asset: federation::AssetName::parse(asset).unwrap(),
-            goal: None,
-        };
-        kernel.admit(agent).as_str().to_owned()
+        let token = engine.tokens.lock().unwrap()[0].clone();
+        (kernel, token)
     }
 
     /// Posts one JSON-RPC request to `/mcp`, and returns the status and the body.
@@ -144,8 +174,7 @@ mod tests {
     #[tokio::test]
     async fn an_agent_calls_the_tool_and_gets_the_knowledge_of_its_asset() {
         let dir = tempfile::tempdir().unwrap();
-        let kernel = kernel(dir.path()).await;
-        let token = peer(&kernel, "billing");
+        let (kernel, token) = kernel(dir.path()).await;
         let app = app(Token::generate(), kernel);
 
         let initialize = json!({
@@ -204,8 +233,8 @@ mod tests {
     #[tokio::test]
     async fn a_tool_that_fails_answers_an_error_for_the_agent_to_read() {
         let dir = tempfile::tempdir().unwrap();
-        let kernel = kernel(dir.path()).await;
-        let token = peer(&kernel, "ledger");
+        let (kernel, token) = kernel(dir.path()).await;
+        fs::remove_file(dir.path().join("billing/.federa/knowledge.md")).unwrap();
         let app = app(Token::generate(), kernel);
 
         let call = json!({
@@ -219,14 +248,13 @@ mod tests {
         let result = &body.unwrap()["result"];
         assert_eq!(result["isError"], true);
         let text = result["content"][0]["text"].as_str().unwrap();
-        assert!(text.contains("ledger"), "{text}");
+        assert!(text.contains("knowledge.md"), "{text}");
     }
 
     #[tokio::test]
     async fn a_request_without_an_agents_token_is_refused() {
         let dir = tempfile::tempdir().unwrap();
-        let kernel = kernel(dir.path()).await;
-        let agent = peer(&kernel, "billing");
+        let (kernel, agent) = kernel(dir.path()).await;
         let client = Token::generate();
         let client_token = client.as_str().to_owned();
         let app = app(client, kernel);
