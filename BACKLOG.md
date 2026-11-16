@@ -2,6 +2,18 @@
 
 ## Goals
 
+### scopeless-commits
+
+Los commits del proyecto van sin scope y un check lo hace cumplir. Done when: un commit como
+`feat(kernel): x` se rechaza en commit-msg y `feat: x` pasa. Primero, porque debe estar en `main`
+antes de que el peer reescriba su historia sin scopes y haga el primer push. Surgió durante el goal
+`asset-conversation`, por decisión de la persona.
+
+- **no-commit-scopes**: short. Outcome: commitlint rechaza todo commit con scope. In scope: la regla
+  `scope-empty` en siempre; la línea de Repositorio de `AGENTS.md` pasa a decir Conventional Commits
+  sin scope, verificado por commitlint. Out of scope: reescribir la historia existente, que hace el
+  peer después del merge. Done when: el del goal. Scope: project.
+
 ### coordinated-goal
 
 La persona define un goal con su peer, y un coordinator lo construye con implementers y reviewers en
@@ -48,11 +60,6 @@ La app se conecta a un runtime que corre en un servidor, con los agentes trabaja
 
 ### Repositorio
 
-- **no-commit-scopes**: short. commitlint rechaza todo commit con scope (`scope-empty` siempre), y
-  la línea de Repositorio de `AGENTS.md` dice Conventional Commits sin scope, verificado por
-  commitlint. Scope: project. Corre apenas termina el goal `asset-conversation` y antes del primer
-  push, junto con reescribir la historia de `main` para quitar los scopes existentes, que hace el
-  peer con una rama de respaldo. Surgió durante el goal `asset-conversation`.
 - **knowledge-checks**: los checks de conocimiento que faltan: cada boundary tiene su header, los
   comandos y rutas que nombran `AGENTS.md` y cada `README.md` existen, y cada `Scope:` de
   `BACKLOG.md` nombra un punto que existe. Scope: project. Surgió en el goal `asset-conversation`.
