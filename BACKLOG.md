@@ -6,24 +6,26 @@
 
 La persona define un goal con su peer, y un coordinator lo construye con implementers y reviewers en
 worktrees, lo integra con un merge local y la persona lo ve avanzar en el trabajo en curso. Define
-el formato de `work/` en el repo de federación. Segundo, porque es el corazón del modelo operativo y
-lo que reemplaza a tmux y al plugin actual.
+el formato de `work/` en el repo de federación. Va primero porque es el corazón del modelo
+operativo y lo que reemplaza a tmux y al plugin actual.
 
 ### verified-changes
 
 Un change que rompe un contrato, un check o su huella declarada queda bloqueado antes del merge, con
-la evidencia a la vista. Tercero, porque sin esta garantía la autonomía de los agentes no es
-confiable.
+la evidencia a la vista. Sigue a coordinated-goal porque, sin esta garantía, la autonomía de los
+agentes que ese goal trae no es confiable.
 
 ### codex-engine
 
-Un goal corre con agentes en Codex usando el plan de ChatGPT de la persona. Cuarto, porque prueba
-que la jerarquía y el MCP no dependen de un proveedor.
+Un goal corre con agentes en Codex usando el plan de ChatGPT de la persona. Sigue a
+verified-changes porque prueba que la jerarquía y el MCP no dependen de un proveedor, una vez que
+lo que construyen los agentes ya se verifica.
 
 ### team-of-two
 
 Dos personas, cada una con su peer, coordinan un cambio sobre el mismo activo a través de un repo
-de federación remoto. Quinto, porque el equipo de la persona se suma pronto.
+de federación remoto. Sigue a codex-engine porque el equipo de la persona se suma pronto, y lo que
+cada persona use como motor ya no depende de Claude.
 
 ### release-candidate
 
