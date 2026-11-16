@@ -1,7 +1,8 @@
 # Each version comes from `.prototools`.
 rust:
+  # `moon setup` writes only the channel into `rust-toolchain.toml`. The components are declared
+  # there because rustup installs them with the channel on any machine.
   syncToolchainConfig: true
-  components: ['clippy', 'rustfmt']
   # cargo resolves dependencies on its own when it builds, and `cargo generate-lockfile` fails on a
   # workspace with no crates yet.
   installDependencies: false

@@ -2,27 +2,12 @@
 
 ## Goals
 
-### ci-green
-
-El CI de GitHub pasa en `main`. Done when: el run del workflow `check` sobre el último commit de
-`main` termina en verde en GitHub. Primero, porque el primer push mostró que el CI falla: el
-servidor instala Rust `1.100.0` sin clippy, y la tarea de clippy no tiene con qué correr. Surgió en
-el primer push, al terminar el goal `asset-conversation`.
-
-- **rust-toolchain-components**: short. Outcome: cualquier máquina que instale el Rust del proyecto
-  trae clippy y rustfmt. In scope: `rust-toolchain.toml` declara `components = ["clippy",
-  "rustfmt"]`, como en aikuora, porque rustup los instala junto con el canal; la misma lista sale de
-  `.moon/toolchains.yml`, para que viva en un solo lugar. Out of scope: cualquier otro cambio al
-  workflow. Condición: external evidence. Antes del merge, el check local pasa y el workflow sigue
-  validado por su linter; el run verde en GitHub lo confirma el peer después del push. Scope:
-  project.
-
 ### coordinated-goal
 
 La persona define un goal con su peer, y un coordinator lo construye con implementers y reviewers en
 worktrees, lo integra con un merge local y la persona lo ve avanzar en el trabajo en curso. Define
 el formato de `work/` en el repo de federación. Va primero porque es el corazón del modelo
-operativo y lo que reemplaza a tmux y al plugin actual. Va después de ci-green.
+operativo y lo que reemplaza a tmux y al plugin actual.
 
 ### verified-changes
 
