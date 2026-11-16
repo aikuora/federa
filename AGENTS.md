@@ -106,9 +106,14 @@ empresa de su autor.
 
 - Cada organización tiene un repo privado de federación. Es la fuente de verdad de lo que no
   pertenece a un solo activo: el conocimiento de la organización, el de cada producto, el catálogo
-  de activos y el registro del trabajo, con sus goals, decisiones autorizadas y backlog.
-- El catálogo dice de cada activo su dueño, dónde vive su código, a qué productos sirve y qué
-  contratos ofrece y usa. Mover un activo de repo cambia solo su entrada en el catálogo.
+  de activos y el registro del trabajo, con sus goals y su backlog.
+- El catálogo dice de cada activo su dueño, dónde vive su código, a qué productos sirve, su etapa y
+  si está gestionado o es externo. Mover un activo de repo cambia solo su entrada en el catálogo.
+- Los contratos que un activo gestionado ofrece y usa los declara su `.federa/`, que cambia con su
+  código; el catálogo los guarda solo para los activos externos.
+- Lo estructurado, que lee la app, va en TOML, y el conocimiento, que los agentes leen completo, en
+  Markdown. Cada archivo TOML lleva su número de schema, y su compatibilidad empieza a regir con la
+  primera versión publicada de Federa.
 - El conocimiento de un activo, como su alcance, su contrato y los comandos con que se construye,
   prueba y arranca, vive en una carpeta propia de la app en la raíz del activo (`.federa/`), y
   cambia en el mismo commit que su código. En un monorepo cada activo tiene la suya, así viaja con
@@ -124,6 +129,14 @@ empresa de su autor.
   respuesta de una persona, que tarda más que un pull.
 - En el núcleo, esa coordinación queda detrás de una interfaz propia, para cambiarla por un servicio
   si un equipo llega a necesitar más velocidad.
+- Una decisión no es un registro aparte. Mientras su trabajo está en curso, vive dentro de la
+  definición de su goal en el repo de federación, con quién la autorizó, y es lo que leen los peers
+  y coordinators. Cuando el goal termina, el goal sale del repo y la decisión queda donde
+  corresponde: la dirección en el conocimiento de su nivel, lo verificable en un check, y la razón
+  en el cuerpo del commit. No se acumula un historial de decisiones, porque envejece y termina
+  contradiciendo al código; el último review de un goal verifica que su dirección llegó a su lugar.
+- Las conversaciones de una persona con su peer son privadas y viven en su runtime; al repo de
+  federación pasan solo las decisiones que salen de ellas.
 - Cada sesión lee completo lo que debe cumplir: la organización, más los productos y activos que su
   trabajo toca. Para todo lo demás, el agente busca con herramientas como grep y lee completo lo que
   encuentra. No hay índices de búsqueda semántica: una regla que debe cumplirse no puede depender de
@@ -148,6 +161,24 @@ empresa de su autor.
   otro.
 - El mismo protocolo sirve con el núcleo en la máquina de la persona o en un servidor remoto, así
   que un cliente no cambia según dónde corran los agentes.
+- El núcleo corre en un proceso propio, el runtime, que sirve el protocolo por WebSocket solo en
+  `127.0.0.1` y con un token que solo el usuario puede leer. Cliente y runtime se saludan declarando
+  la versión del protocolo, y el cliente avisa si no coinciden.
+- El runtime vive separado de la ventana, así los agentes siguen trabajando cuando se cierra. Se
+  apaga solo cuando pasa un rato sin agentes trabajando ni clientes conectados, y mientras tiene
+  agentes trabajando se muestra en la barra del sistema.
+- La app de escritorio trae el runtime de su misma versión y lo arranca si no hay uno corriendo; si
+  hay uno de otra versión con agentes trabajando, avisa en vez de reemplazarlo. Para un servidor, el
+  mismo runtime se distribuye solo.
+
+```mermaid
+flowchart LR
+  desktop["desktop<br/>Tauri + React<br/>interfaz"] -->|"protocolo por WebSocket"| runtime
+  runtime["runtime<br/>Rust<br/>núcleo y agentes"] -->|"stdio JSON"| claude["claude<br/>binario oficial<br/>motor de agentes"]
+  claude -->|"herramientas MCP por HTTP"| runtime
+  runtime -->|"git"| federation[("repo de federación<br/>organización, catálogo, trabajo")]
+  runtime -->|"git"| assets[("repos de activos<br/>código y .federa/")]
+```
 
 ### Adopción
 
@@ -162,14 +193,20 @@ empresa de su autor.
 - El núcleo orquesta, y los agentes corren en motores intercambiables, uno por proveedor, cada uno
   detrás de un adaptador: Claude con el binario oficial `claude` hablando JSON por stdio, Codex con
   `codex app-server`, y el resto con un ciclo de agente propio de la app sobre API keys.
-- Cada adaptador soporta una versión fijada del binario de su proveedor, y tests de protocolo contra
-  esa versión detectan cuando el proveedor cambia su protocolo.
+- Cada adaptador exige una versión mínima del binario de su proveedor y acepta las más nuevas sin
+  aviso, porque los cambios observados entre versiones solo agregan campos. Lee solo los campos que
+  usa, ignora el resto y falla con un error claro cuando falta uno que necesita. Sus tests sin red
+  usan grabaciones reales de la versión mínima, que se graban de nuevo al subirla.
 - Cada persona usa su propia suscripción o su API key. La app nunca ofrece un login propio de un
   proveedor ni lee, guarda o intermedia credenciales: la sesión se inicia en el flujo oficial de
   cada proveedor, porque sus términos lo exigen para usar las suscripciones.
 - La jerarquía, la comunicación entre agentes, el conocimiento y el registro del trabajo viven en el
   núcleo, y los agentes los usan como herramientas por MCP. Así un peer y un implementer pueden
   correr en motores distintos con las mismas reglas.
+- El runtime atiende esas herramientas por HTTP, y cada agente recibe al abrirse un token propio que
+  dice quién es: su rol, su sesión, su activo y su goal. Con eso el núcleo hace cumplir la jerarquía
+  en cada pedido. El runtime agrega al sandbox de cada agente el permiso para llegar a él, y nada
+  más.
 
 ### Seguridad de los agentes
 
@@ -223,6 +260,19 @@ empresa de su autor.
   delgado entre el protocolo del núcleo y la interfaz.
 - Los tipos TypeScript del protocolo se generan desde Rust, para que el cliente y el núcleo no se
   desalineen.
+
+### Principios
+
+- El código Rust se reparte en crates de una sola palabra, cada uno escondiendo una decisión:
+  `protocol`, el contrato con los clientes; `engine`, el contrato con los motores; uno por motor,
+  como `claude`; `federation`, cómo se guarda el repo de federación y cada `.federa/`; y `kernel`,
+  la lógica. Las apps viven en `apps/`: `runtime`, que conecta los crates, y `desktop`.
+- Las dependencias siguen una sola dirección: `kernel` conoce `engine` y `federation` pero nunca un
+  motor concreto, y los clientes solo conocen `protocol`. Un check de dependencias lo verifica.
+- Dentro de cada crate y de `desktop`, los módulos se reparten por concepto, no por capa técnica:
+  agregar algo es agregar una carpeta, no hacer crecer un archivo. Ningún archivo de código pasa de
+  300 líneas sin contar tests, y un check lo verifica.
+- Lo público de cada crate es lo mínimo; por defecto todo es `pub(crate)`.
 
 ### Licencia
 
