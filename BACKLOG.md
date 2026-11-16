@@ -66,6 +66,14 @@ La app se conecta a un runtime que corre en un servidor, con los agentes trabaja
 
 ## Loose entries
 
+### Repositorio
+
+- **no-commit-scopes**: short. commitlint rechaza todo commit con scope (`scope-empty` siempre), y
+  la línea de Repositorio de `AGENTS.md` dice Conventional Commits sin scope, verificado por
+  commitlint. Scope: project. Corre apenas termina el goal `asset-conversation` y antes del primer
+  push, junto con reescribir la historia de `main` para quitar los scopes existentes, que hace el
+  peer con una rama de respaldo. Surgió durante el goal `asset-conversation`.
+
 ### Dirección
 
 - **lateral-communication-rules**: capture. Las reglas de cuándo hablan dos pares de un mismo
