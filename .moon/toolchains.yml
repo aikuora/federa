@@ -1,4 +1,8 @@
-# Each version comes from `.prototools`.
+# Each version comes from `.prototools`, except proto's own.
+proto:
+  # moon installs a proto of its own choosing when none is named here, and CI installs this one, so
+  # both run the same.
+  version: '0.62.2'
 rust:
   # `moon setup` writes only the channel into `rust-toolchain.toml`. The components are declared
   # there because rustup installs them with the channel on any machine.

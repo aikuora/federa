@@ -16,9 +16,57 @@ jobs:
         with:
           # The secret scan reads the whole history.
           fetch-depth: 0
-      - uses: moonrepo/setup-toolchain@v0
+      # Both caches are restored before proto runs, so it finds what it installed before, and each
+      # is saved by its post step only when the job passes, so a broken install is never kept. Rust
+      # travels in its own: rustup, its proxies, the toolchain `rust-toolchain.toml` names and
+      # proto's record of it, together, so proto never finds the record without the toolchain. Only
+      # that toolchain's folder, never the stable one the runner image brings.
+      - id: rust
+        run: |
+          channel="$(yq --input-format toml --output-format yaml '.toolchain.channel' rust-toolchain.toml)"
+          {
+            echo 'paths<<EOF'
+            echo '~/.cargo/bin'
+            echo '~/.rustup/settings.toml'
+            echo "~/.rustup/toolchains/$channel-*"
+            echo '~/.proto/tools/rust'
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
         with:
-          auto-install: true
+          path: ${{ steps.rust.outputs.paths }}
+          key: rust-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('rust-toolchain.toml') }}
+      - uses: actions/cache@v6
+        with:
+          path: |
+            ~/.proto/plugins
+            ~/.proto/tools
+            !~/.proto/tools/rust
+          key: tools-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.prototools', '.moon/toolchains.yml') }}
+      # proto at the version `.moon/toolchains.yml` pins, from its published release and checked
+      # against the release's checksum. The checksum file ends with an empty line, which `sha256sum`
+      # would warn about.
+      - run: |
+          archive="proto_cli-$(uname -m)-unknown-linux-gnu.tar.xz"
+          release="https://github.com/moonrepo/proto/releases/download/v$(yq '.proto.version' .moon/toolchains.yml)"
+          cd "$RUNNER_TEMP"
+          curl --fail --silent --show-error --location --remote-name "$release/$archive" --remote-name "$release/$archive.sha256"
+          grep . "$archive.sha256" | sha256sum --check
+          mkdir -p "$HOME/.proto/bin"
+          tar --extract --file "$archive" --strip-components 1 --directory "$HOME/.proto/bin" "${archive%.tar.xz}/proto" "${archive%.tar.xz}/proto-shim"
+          echo "$HOME/.proto/bin" >> "$GITHUB_PATH"
+          echo "$HOME/.proto/shims" >> "$GITHUB_PATH"
+      # rustup and `cargo` live in `~/.cargo/bin`, which GitHub's runner image has on `PATH` and act's
+      # does not. It goes before proto, which downloads rustup's installer when it finds no `rustup`
+      # on `PATH`, even one the cache restored.
+      - run: echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
+      # proto checks whether Rust is installed with `rustup toolchain list`, which rustup takes as a
+      # cue to install the toolchain `rust-toolchain.toml` names with only the components it lists,
+      # without `cargo` or `rustc`; proto then finds the folder and installs nothing. With that
+      # installation off, proto installs the whole toolchain.
+      - run: proto install
+        env:
+          RUSTUP_AUTO_INSTALL: '0'
       # The system libraries the desktop app's native side builds against, as Tauri's Linux
       # prerequisites list them.
       - run: |

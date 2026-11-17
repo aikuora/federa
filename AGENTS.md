@@ -287,8 +287,8 @@ flowchart LR
 
 ### Desarrollo
 
-- proto fija en `.prototools` la versión de cada herramienta, y moon corre las tareas y los hooks de
-  git.
+- proto fija en `.prototools` la versión de cada herramienta, `.moon/toolchains.yml` la del propio
+  proto, y moon corre las tareas y los hooks de git.
 - Vite+ formatea, lintea, revisa tipos con TypeScript 7 y corre los tests de Vitest desde un único
   `vite.config.ts` en la raíz.
 - Se prepara una vez desde el checkout principal con `proto trust && proto install && pnpm install
