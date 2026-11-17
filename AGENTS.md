@@ -299,8 +299,7 @@ flowchart LR
 
 ### Repositorio
 
-- El repo vive en la organización de aikuora en GitHub, y su rama principal es `main`, siempre lista
-  para producción.
+- La rama principal es `main`, siempre lista para producción.
 - Trunk-based: ramas de change cortas, sin ramas por ambiente. Cada versión publicada es un tag
   `vMAJOR.MINOR.PATCH` sobre `main`, y una rama desde un tag existe solo para un hotfix.
 - Lo que entra a `main` sin estar listo para usuarios queda detrás de un feature flag.
