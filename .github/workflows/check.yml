@@ -26,10 +26,10 @@ jobs:
           channel="$(yq --input-format toml --output-format yaml '.toolchain.channel' rust-toolchain.toml)"
           {
             echo 'paths<<EOF'
-            echo '~/.cargo/bin'
-            echo '~/.rustup/settings.toml'
-            echo "~/.rustup/toolchains/$channel-*"
-            echo '~/.proto/tools/rust'
+            echo "$HOME/.cargo/bin"
+            echo "$HOME/.rustup/settings.toml"
+            echo "$HOME/.rustup/toolchains/$channel-*"
+            echo "$HOME/.proto/tools/rust"
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v6
