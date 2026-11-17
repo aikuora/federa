@@ -2,6 +2,19 @@
 
 ## Goals
 
+### ci-green
+
+El CI de GitHub pasa en `main`. Done when: el run del workflow `check` sobre el último commit de
+`main` termina en verde en GitHub. Primero, porque Rust ya se instala completo en CI, pero el
+linter de workflows rechaza el paso de instalación: escribe rutas con `~` entre comillas, donde no
+se expande (SC2088). Surgió en el push de `ci-toolchain-setup`.
+
+- **ci-home-paths**: short. Outcome: el workflow pasa su linter. In scope: las rutas del paso de
+  instalación usan `$HOME` en vez de `~` entre comillas, y siguen nombrando las mismas carpetas para
+  los cachés. Out of scope: cualquier otro cambio al workflow. Condición: external evidence. Antes
+  del merge, `actionlint` y `moon run :check` pasan y el workflow corre en verde con `act`; el run
+  verde en GitHub lo confirma el peer después del push. Scope: project.
+
 ### coordinated-goal
 
 La persona define un goal con su peer, y un coordinator lo construye con implementers y reviewers en
@@ -50,6 +63,10 @@ La app se conecta a un runtime que corre en un servidor, con los agentes trabaja
 
 ### Repositorio
 
+- **rust-channel-check**: un check que falle cuando el canal de `rust-toolchain.toml` no coincide
+  con el Rust de `.prototools`. La sincronización de moon reescribe ese archivo solo en `moon setup`,
+  que no corre ningún hook, tarea ni CI, así que subir Rust en `.prototools` deja el archivo atrasado
+  sin aviso. Scope: project. Surgió en el goal `ci-green`.
 - **knowledge-checks**: los checks de conocimiento que faltan: cada boundary tiene su header, los
   comandos y rutas que nombran `AGENTS.md` y cada `README.md` existen, y cada `Scope:` de
   `BACKLOG.md` nombra un punto que existe. Scope: project. Surgió en el goal `asset-conversation`.
