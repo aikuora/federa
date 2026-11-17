@@ -2,6 +2,25 @@
 
 ## Goals
 
+### ci-green
+
+El CI de GitHub pasa en `main`. Done when: el run del workflow `check` sobre el último commit de
+`main` termina en verde en GitHub. Primero, porque el CI sigue fallando aun sin caché: la acción
+`moonrepo/setup-toolchain` registra Rust `1.100.0` en un segundo, sin `cargo` dentro, y después
+`rustup toolchain install` lo da por instalado. Surgió en el tercer push, tras
+`rust-toolchain-install-once`.
+
+- **ci-toolchain-setup**: short. Outcome: CI instala las herramientas del proyecto de una forma
+  que deja Rust completo. In scope: reemplazar `moonrepo/setup-toolchain` por un paso de instalación
+  propio: proto desde su release, verificado por checksum y en la versión que fija el proyecto;
+  `~/.cargo/bin` en el PATH; `proto install` con `RUSTUP_AUTO_INSTALL=0`; después `rustup toolchain
+  install --no-self-update`; y Rust en un caché propio, con la llave de `rust-toolchain.toml` y
+  guardado solo cuando el job pasa, fuera del caché de las demás herramientas, para que proto nunca
+  encuentre su registro de Rust sin la instalación. Decidido: ese mecanismo, verificado localmente
+  con `act` antes del merge. Out of scope: otros jobs o checks. Condición: external evidence. Antes
+  del merge, el workflow pasa su linter y corre en verde con `act`; el run verde en GitHub lo
+  confirma el peer después del push. Scope: project.
+
 ### coordinated-goal
 
 La persona define un goal con su peer, y un coordinator lo construye con implementers y reviewers en
